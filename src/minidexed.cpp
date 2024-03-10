@@ -47,17 +47,17 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 #ifdef ARM_ALLOW_MULTI_CORE
 	m_nActiveTGsLog2 (0),
 #endif
-	m_GetChunkTimer ("GetChunk",
-			 1000000U * pConfig->GetChunkSize ()/2 / pConfig->GetSampleRate ()),
+	m_GetChunkTimer ("GetChunk", 1000000U * pConfig->GetChunkSize ()/2 / pConfig->GetSampleRate ()),
 	m_bProfileEnabled (m_pConfig->GetProfileEnabled ()),
 	m_bSavePerformance (false),
 	m_bSavePerformanceNewFile (false),
-	m_bSetNewPerformance (false),
-	m_bSetNewPerformanceBank (false),
-	m_bSetFirstPerformance (false),
+	m_bLoadPerformance (false),
+	m_bLoadPerformanceBank (false),
+	m_bLoadFirstPerformance (false),
 	m_bDeletePerformance (false),
 	m_bLoadPerformanceBusy(false),
-	m_bLoadPerformanceBankBusy(false)
+	m_bLoadPerformanceBankBusy(false),
+	m_bLoadInitialSettings(false)
 {
 	assert (m_pConfig);
 
@@ -65,7 +65,7 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	{
 		m_nVoiceBankID[i] = 0;
 		m_nVoiceBankIDMSB[i] = 0;
-		m_nProgram[i] = 0;
+		m_nVoice[i] = 0;
 		m_nVolume[i] = 100;
 		m_nPan[i] = 64;
 		m_nMasterTune[i] = 0;
@@ -152,7 +152,7 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	}
 #endif
 
-	setMasterVolume(1.0);
+	SetMasterVolume(1.0);
 
 	// BEGIN setup tg_mixer
 	tg_mixer = new AudioStereoMixer<CConfig::ToneGenerators>(pConfig->GetChunkSize()/2);
@@ -232,7 +232,17 @@ bool CMiniDexed::Initialize (void)
 		reverb_send_mixer->gain(i,mapfloat(m_nReverbSend[i],0,99,0.0f,1.0f));
 	}
 
-	m_PerformanceConfig.Init();
+	if (m_pConfig->GetSaveSessionPerformance())
+	{
+		m_bLoadInitialSettings = true;
+		m_PerformanceConfig.Init(m_pConfig->GetSessionPerformanceBank(), m_pConfig->GetSessionPerformance());
+	}
+	else
+	{
+		// set defaults
+		m_PerformanceConfig.Init(0, 0);
+	}
+	
 	if (m_PerformanceConfig.Load ())
 	{
 		LoadPerformanceParameters(); 
@@ -305,29 +315,35 @@ void CMiniDexed::Process (bool bPlugAndPlayUpdated)
 		m_bSavePerformanceNewFile = false;
 	}
 	
-	if (m_bSetNewPerformanceBank && !m_bLoadPerformanceBusy && !m_bLoadPerformanceBankBusy)
+	if (m_bLoadPerformanceBank && !m_bLoadPerformanceBusy && !m_bLoadPerformanceBankBusy)
 	{
-		DoSetNewPerformanceBank ();
-		if (m_nSetNewPerformanceBankID == GetActualPerformanceBankID())
+		DoLoadPerformanceBank ();
+
+		// verify operation done
+		if (m_nLoadPerformanceBankID == GetPerformanceBankID())
 		{
-			m_bSetNewPerformanceBank = false;
+			m_bLoadPerformanceBank = false;
 		}
 		
 		// If there is no pending SetNewPerformance already, then see if we need to find the first performance to load
 		// NB: If called from the UI, then there will not be a SetNewPerformance, so load the first existing one.
 		//     If called from MIDI, there will probably be a SetNewPerformance alongside the Bank select.
-		if (!m_bSetNewPerformance && m_bSetFirstPerformance)
+		if (!m_bLoadPerformance && m_bLoadFirstPerformance)
 		{
-			DoSetFirstPerformance();
+			if (!m_bLoadInitialSettings)
+			{
+				DoLoadFirstPerformance();
+			}
+			m_bLoadInitialSettings = false;
 		}
 	}
 	
-	if (m_bSetNewPerformance && !m_bSetNewPerformanceBank && !m_bLoadPerformanceBusy && !m_bLoadPerformanceBankBusy)
+	if (m_bLoadPerformance && !m_bLoadPerformanceBank && !m_bLoadPerformanceBusy && !m_bLoadPerformanceBankBusy)
 	{
-		DoSetNewPerformance ();
-		if (m_nSetNewPerformanceID == GetActualPerformanceID())
+		DoLoadPerformance ();
+		if (m_nLoadPerformanceID == GetPerformanceID())
 		{
-			m_bSetNewPerformance = false;
+			m_bLoadPerformance = false;
 		}
 	}
 	
@@ -436,7 +452,7 @@ void CMiniDexed::BankSelectPerformance (unsigned nBank)
 	{
 		// Only change if we have the bank loaded
 		m_nVoiceBankIDPerformance = nBank;
-		SetNewPerformanceBank (nBank);
+		LoadPerformanceBank (nBank);
 
 		m_UI.ParameterChanged ();
 	}
@@ -516,7 +532,7 @@ void CMiniDexed::ProgramChange (unsigned nProgram, unsigned nTG)
 	}
 
 	assert (nTG < CConfig::ToneGenerators);
-	m_nProgram[nTG] = nProgram;
+	m_nVoice[nTG] = nProgram;
 
 	uint8_t Buffer[156];
 	m_SysExFileLoader.GetVoice (m_nVoiceBankID[nTG]+nBankOffset, nProgram, Buffer);
@@ -544,7 +560,7 @@ void CMiniDexed::ProgramChangePerformance (unsigned nProgram)
 		// Program Change messages change Performances.
 		if (m_PerformanceConfig.IsValidPerformance(nProgram))
 		{
-			SetNewPerformance(nProgram);
+			LoadPerformance(nProgram);
 		}
 		m_UI.ParameterChanged ();
 	}
@@ -875,7 +891,7 @@ void CMiniDexed::SetTGParameter (TTGParameter Parameter, int nValue, unsigned nT
 	case TGParameterVoiceBank:	BankSelect (nValue, nTG);	break;
 	case TGParameterVoiceBankMSB:	BankSelectMSB (nValue, nTG);	break;
 	case TGParameterVoiceBankLSB:	BankSelectLSB (nValue, nTG);	break;
-	case TGParameterProgram:	ProgramChange (nValue, nTG);	break;
+	case TGParameterVoice:	ProgramChange (nValue, nTG);	break;
 	case TGParameterVolume:		SetVolume (nValue, nTG);	break;
 	case TGParameterPan:		SetPan (nValue, nTG);		break;
 	case TGParameterMasterTune:	SetMasterTune (nValue, nTG);	break;
@@ -930,7 +946,7 @@ int CMiniDexed::GetTGParameter (TTGParameter Parameter, unsigned nTG)
 	case TGParameterVoiceBank:	return m_nVoiceBankID[nTG];
 	case TGParameterVoiceBankMSB:	return m_nVoiceBankID[nTG] >> 7;
 	case TGParameterVoiceBankLSB:	return m_nVoiceBankID[nTG] & 0x7F;
-	case TGParameterProgram:	return m_nProgram[nTG];
+	case TGParameterVoice:	return m_nVoice[nTG];
 	case TGParameterVolume:		return m_nVolume[nTG];
 	case TGParameterPan:		return m_nPan[nTG];
 	case TGParameterMasterTune:	return m_nMasterTune[nTG];
@@ -1253,7 +1269,7 @@ bool CMiniDexed::DoSavePerformance (void)
 	for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
 	{
 		m_PerformanceConfig.SetBankNumber (m_nVoiceBankID[nTG], nTG);
-		m_PerformanceConfig.SetVoiceNumber (m_nProgram[nTG], nTG);
+		m_PerformanceConfig.SetVoiceNumber (m_nVoice[nTG], nTG);
 		m_PerformanceConfig.SetMIDIChannel (m_nMIDIChannel[nTG], nTG);
 		m_PerformanceConfig.SetVolume (m_nVolume[nTG], nTG);
 		m_PerformanceConfig.SetPan (m_nPan[nTG], nTG);
@@ -1296,7 +1312,7 @@ bool CMiniDexed::DoSavePerformance (void)
 
 	if(m_bSaveAsDeault)
 	{
-		m_PerformanceConfig.SetNewPerformance(0);
+		m_PerformanceConfig.LoadPerformance(0);
 		
 	}
 	return m_PerformanceConfig.Save ();
@@ -1537,7 +1553,7 @@ void CMiniDexed::getSysExVoiceDump(uint8_t* dest, uint8_t nTG)
 	dest[162] = 0xF7; // SysEx end
 }
 
-void CMiniDexed::setMasterVolume (float32_t vol)
+void CMiniDexed::SetMasterVolume (float32_t vol)
 {
 	if(vol < 0.0)
 		vol = 0.0;
@@ -1545,6 +1561,11 @@ void CMiniDexed::setMasterVolume (float32_t vol)
 		vol = 1.0;
 
 	nMasterVolume=vol;
+}
+
+float32_t CMiniDexed::GetMasterVolume ()
+{
+	return nMasterVolume;
 }
 
 std::string CMiniDexed::GetPerformanceFileName(unsigned nID)
@@ -1557,100 +1578,111 @@ std::string CMiniDexed::GetPerformanceName(unsigned nID)
 	return m_PerformanceConfig.GetPerformanceName(nID);
 }
 
-unsigned CMiniDexed::GetLastPerformance()
+unsigned CMiniDexed::GetLastPerformanceID()
 {
-	return m_PerformanceConfig.GetLastPerformance();
+	return m_PerformanceConfig.GetLastPerformanceID();
 }
 
-unsigned CMiniDexed::GetPerformanceBank()
+unsigned CMiniDexed::GetPerformanceID()
 {
-	return m_PerformanceConfig.GetPerformanceBank();
+	return m_PerformanceConfig.GetPerformanceID();
 }
 
-unsigned CMiniDexed::GetLastPerformanceBank()
+void CMiniDexed::SetPerformanceID(unsigned nID)
 {
-	return m_PerformanceConfig.GetLastPerformanceBank();
+	m_PerformanceConfig.SetPerformanceID(nID);
 }
 
-unsigned CMiniDexed::GetActualPerformanceID()
+unsigned CMiniDexed::GetPerformanceBankID()
 {
-	return m_PerformanceConfig.GetActualPerformanceID();
+	return m_PerformanceConfig.GetPerformanceBankID();
 }
 
-void CMiniDexed::SetActualPerformanceID(unsigned nID)
+unsigned CMiniDexed::GetLastPerformanceBankID()
 {
-	m_PerformanceConfig.SetActualPerformanceID(nID);
+	return m_PerformanceConfig.GetLastPerformanceBankID();
 }
 
-unsigned CMiniDexed::GetActualPerformanceBankID()
+void CMiniDexed::SetPerformanceBankID(unsigned nBankID)
 {
-	return m_PerformanceConfig.GetActualPerformanceBankID();
+	m_PerformanceConfig.SetPerformanceBankID(nBankID);
 }
 
-void CMiniDexed::SetActualPerformanceBankID(unsigned nBankID)
+bool CMiniDexed::LoadPerformance(unsigned nID)
 {
-	m_PerformanceConfig.SetActualPerformanceBankID(nBankID);
-}
-
-bool CMiniDexed::SetNewPerformance(unsigned nID)
-{
-	m_bSetNewPerformance = true;
-	m_nSetNewPerformanceID = nID;
+	m_bLoadPerformance = true;
+	m_nLoadPerformanceID = nID;
 
 	return true;
 }
 
-bool CMiniDexed::SetNewPerformanceBank(unsigned nBankID)
+bool CMiniDexed::LoadPerformanceBank(unsigned nBankID)
 {
-	m_bSetNewPerformanceBank = true;
-	m_nSetNewPerformanceBankID = nBankID;
+	m_bLoadPerformanceBank = true;
+	m_nLoadPerformanceBankID = nBankID;
 
 	return true;
 }
 
-void CMiniDexed::SetFirstPerformance(void)
+void CMiniDexed::LoadFirstPerformance(void)
 {
-	m_bSetFirstPerformance = true;
+	m_bLoadFirstPerformance = true;
 	return;
 }
 
-bool CMiniDexed::DoSetNewPerformance (void)
+bool CMiniDexed::DoLoadPerformance (void)
 {
-	m_bLoadPerformanceBusy = true;
-	
-	unsigned nID = m_nSetNewPerformanceID;
-	m_PerformanceConfig.SetNewPerformance(nID);
-	
-	if (m_PerformanceConfig.Load ())
+	bool result = false;
+	if (!m_bLoadPerformanceBusy)
 	{
-		LoadPerformanceParameters();
+		m_bLoadPerformanceBusy = true;
+		unsigned nID = m_nLoadPerformanceID;
+		m_PerformanceConfig.LoadPerformance(nID);
+		if (m_PerformanceConfig.Load ())
+		{
+			LoadPerformanceParameters();
+
+			if (m_pConfig->GetSaveSessionPerformance()) 
+			{
+				m_pConfig->SetSessionPerformance(nID);
+				m_pConfig->SaveSessionSettings();
+			}
+			result = true;
+		}
+		else
+		{
+			SetMIDIChannel (CMIDIDevice::OmniMode, 0);
+		}
 		m_bLoadPerformanceBusy = false;
-		return true;
 	}
-	else
-	{
-		SetMIDIChannel (CMIDIDevice::OmniMode, 0);
-		m_bLoadPerformanceBusy = false;
-		return false;
-	}
+	return result;
 }
 
-bool CMiniDexed::DoSetNewPerformanceBank (void)
+bool CMiniDexed::DoLoadPerformanceBank (void)
 {
-	m_bLoadPerformanceBankBusy = true;
-	
-	unsigned nBankID = m_nSetNewPerformanceBankID;
-	m_PerformanceConfig.SetNewPerformanceBank(nBankID);
-	
-	m_bLoadPerformanceBankBusy = false;
-	return true;
+	bool result = false;
+	if (!m_bLoadPerformanceBankBusy)
+	{
+		m_bLoadPerformanceBankBusy = true;
+		unsigned nBankID = m_nLoadPerformanceBankID;
+		m_PerformanceConfig.LoadPerformanceBank(nBankID);
+		if (m_pConfig->GetSaveSessionPerformance()) 
+		{
+			m_pConfig->SetSessionPerformanceBank(nBankID);
+			m_pConfig->SaveSessionSettings();
+		}
+		result = true;
+		m_bLoadPerformanceBankBusy = false;
+	}
+	return result;
 }
 
-void CMiniDexed::DoSetFirstPerformance(void)
+// find and set the first performance of selected bank
+void CMiniDexed::DoLoadFirstPerformance(void)
 {
 	unsigned nID = m_PerformanceConfig.FindFirstPerformance();
-	SetNewPerformance(nID);
-	m_bSetFirstPerformance = false;
+	LoadPerformance(nID);
+	m_bLoadFirstPerformance = false;
 	return;
 }
 
@@ -1664,14 +1696,7 @@ bool CMiniDexed::DoSavePerformanceNewFile (void)
 {
 	if (m_PerformanceConfig.CreateNewPerformanceFile())
 	{
-		if(SavePerformance(false))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return SavePerformance(false);
 	}
 	else
 	{
@@ -1680,59 +1705,58 @@ bool CMiniDexed::DoSavePerformanceNewFile (void)
 	
 }
 
-
 void CMiniDexed::LoadPerformanceParameters(void)
 {
 	for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
-		{
-			
-			BankSelect (m_PerformanceConfig.GetBankNumber (nTG), nTG);
-			ProgramChange (m_PerformanceConfig.GetVoiceNumber (nTG), nTG);
-			SetMIDIChannel (m_PerformanceConfig.GetMIDIChannel (nTG), nTG);
-			SetVolume (m_PerformanceConfig.GetVolume (nTG), nTG);
-			SetPan (m_PerformanceConfig.GetPan (nTG), nTG);
-			SetMasterTune (m_PerformanceConfig.GetDetune (nTG), nTG);
-			SetCutoff (m_PerformanceConfig.GetCutoff (nTG), nTG);
-			SetResonance (m_PerformanceConfig.GetResonance (nTG), nTG);
-			setPitchbendRange (m_PerformanceConfig.GetPitchBendRange (nTG), nTG);
-			setPitchbendStep (m_PerformanceConfig.GetPitchBendStep (nTG), nTG);
-			setPortamentoMode (m_PerformanceConfig.GetPortamentoMode (nTG), nTG);
-			setPortamentoGlissando (m_PerformanceConfig.GetPortamentoGlissando  (nTG), nTG);
-			setPortamentoTime (m_PerformanceConfig.GetPortamentoTime (nTG), nTG);
+	{
+		
+		BankSelect (m_PerformanceConfig.GetBankNumber (nTG), nTG);
+		ProgramChange (m_PerformanceConfig.GetVoiceNumber (nTG), nTG);
+		SetMIDIChannel (m_PerformanceConfig.GetMIDIChannel (nTG), nTG);
+		SetVolume (m_PerformanceConfig.GetVolume (nTG), nTG);
+		SetPan (m_PerformanceConfig.GetPan (nTG), nTG);
+		SetMasterTune (m_PerformanceConfig.GetDetune (nTG), nTG);
+		SetCutoff (m_PerformanceConfig.GetCutoff (nTG), nTG);
+		SetResonance (m_PerformanceConfig.GetResonance (nTG), nTG);
+		setPitchbendRange (m_PerformanceConfig.GetPitchBendRange (nTG), nTG);
+		setPitchbendStep (m_PerformanceConfig.GetPitchBendStep (nTG), nTG);
+		setPortamentoMode (m_PerformanceConfig.GetPortamentoMode (nTG), nTG);
+		setPortamentoGlissando (m_PerformanceConfig.GetPortamentoGlissando  (nTG), nTG);
+		setPortamentoTime (m_PerformanceConfig.GetPortamentoTime (nTG), nTG);
 
-			m_nNoteLimitLow[nTG] = m_PerformanceConfig.GetNoteLimitLow (nTG);
-			m_nNoteLimitHigh[nTG] = m_PerformanceConfig.GetNoteLimitHigh (nTG);
-			m_nNoteShift[nTG] = m_PerformanceConfig.GetNoteShift (nTG);
-			
-			if(m_PerformanceConfig.VoiceDataFilled(nTG)) 
-			{
+		m_nNoteLimitLow[nTG] = m_PerformanceConfig.GetNoteLimitLow (nTG);
+		m_nNoteLimitHigh[nTG] = m_PerformanceConfig.GetNoteLimitHigh (nTG);
+		m_nNoteShift[nTG] = m_PerformanceConfig.GetNoteShift (nTG);
+		
+		if(m_PerformanceConfig.VoiceDataFilled(nTG)) 
+		{
 			uint8_t* tVoiceData = m_PerformanceConfig.GetVoiceDataFromTxt(nTG);
 			m_pTG[nTG]->loadVoiceParameters(tVoiceData); 
-			}
-			setMonoMode(m_PerformanceConfig.GetMonoMode(nTG) ? 1 : 0, nTG); 
-			SetReverbSend (m_PerformanceConfig.GetReverbSend (nTG), nTG);
-					
-			setModWheelRange (m_PerformanceConfig.GetModulationWheelRange (nTG),  nTG);
-			setModWheelTarget (m_PerformanceConfig.GetModulationWheelTarget (nTG),  nTG);
-			setFootControllerRange (m_PerformanceConfig.GetFootControlRange (nTG),  nTG);
-			setFootControllerTarget (m_PerformanceConfig.GetFootControlTarget (nTG),  nTG);
-			setBreathControllerRange (m_PerformanceConfig.GetBreathControlRange (nTG),  nTG);
-			setBreathControllerTarget (m_PerformanceConfig.GetBreathControlTarget (nTG),  nTG);
-			setAftertouchRange (m_PerformanceConfig.GetAftertouchRange (nTG),  nTG);
-			setAftertouchTarget (m_PerformanceConfig.GetAftertouchTarget (nTG),  nTG);
-			
-		
 		}
+		setMonoMode(m_PerformanceConfig.GetMonoMode(nTG) ? 1 : 0, nTG); 
+		SetReverbSend (m_PerformanceConfig.GetReverbSend (nTG), nTG);
+				
+		setModWheelRange (m_PerformanceConfig.GetModulationWheelRange (nTG),  nTG);
+		setModWheelTarget (m_PerformanceConfig.GetModulationWheelTarget (nTG),  nTG);
+		setFootControllerRange (m_PerformanceConfig.GetFootControlRange (nTG),  nTG);
+		setFootControllerTarget (m_PerformanceConfig.GetFootControlTarget (nTG),  nTG);
+		setBreathControllerRange (m_PerformanceConfig.GetBreathControlRange (nTG),  nTG);
+		setBreathControllerTarget (m_PerformanceConfig.GetBreathControlTarget (nTG),  nTG);
+		setAftertouchRange (m_PerformanceConfig.GetAftertouchRange (nTG),  nTG);
+		setAftertouchTarget (m_PerformanceConfig.GetAftertouchTarget (nTG),  nTG);
+		
+	
+	}
 
-		// Effects
-		SetParameter (ParameterCompressorEnable, m_PerformanceConfig.GetCompressorEnable () ? 1 : 0);
-		SetParameter (ParameterReverbEnable, m_PerformanceConfig.GetReverbEnable () ? 1 : 0);
-		SetParameter (ParameterReverbSize, m_PerformanceConfig.GetReverbSize ());
-		SetParameter (ParameterReverbHighDamp, m_PerformanceConfig.GetReverbHighDamp ());
-		SetParameter (ParameterReverbLowDamp, m_PerformanceConfig.GetReverbLowDamp ());
-		SetParameter (ParameterReverbLowPass, m_PerformanceConfig.GetReverbLowPass ());
-		SetParameter (ParameterReverbDiffusion, m_PerformanceConfig.GetReverbDiffusion ());
-		SetParameter (ParameterReverbLevel, m_PerformanceConfig.GetReverbLevel ());
+	// Effects
+	SetParameter (ParameterCompressorEnable, m_PerformanceConfig.GetCompressorEnable () ? 1 : 0);
+	SetParameter (ParameterReverbEnable, m_PerformanceConfig.GetReverbEnable () ? 1 : 0);
+	SetParameter (ParameterReverbSize, m_PerformanceConfig.GetReverbSize ());
+	SetParameter (ParameterReverbHighDamp, m_PerformanceConfig.GetReverbHighDamp ());
+	SetParameter (ParameterReverbLowDamp, m_PerformanceConfig.GetReverbLowDamp ());
+	SetParameter (ParameterReverbLowPass, m_PerformanceConfig.GetReverbLowPass ());
+	SetParameter (ParameterReverbDiffusion, m_PerformanceConfig.GetReverbDiffusion ());
+	SetParameter (ParameterReverbLevel, m_PerformanceConfig.GetReverbLevel ());
 }
 
 std::string CMiniDexed::GetNewPerformanceDefaultName(void)	

@@ -76,13 +76,14 @@ public:
 
 	// MIDI
 	unsigned GetMIDIBaudRate (void) const;
-	const char *GetMIDIThruIn (void) const;	// "" if not specified
-	const char *GetMIDIThruOut (void) const;	// "" if not specified
-	bool GetMIDIRXProgramChange (void) const;	// true if not specified
+	const char *GetMIDIThruIn (void) const;	    // "" if not specified
+	const char *GetMIDIThruOut (void) const;    // "" if not specified
+    unsigned GetMIDIOutTg(void) const;          // TG number to out, 0  default for none
+	bool GetMIDIRXProgramChange (void) const;   // true if not specified
 	bool GetIgnoreAllNotesOff (void) const;
 	bool GetMIDIAutoVoiceDumpOnPC (void) const; // true if not specified
 	bool GetHeaderlessSysExVoices (void) const; // false if not specified
-	bool GetExpandPCAcrossBanks (void) const; // true if not specified
+	bool GetExpandPCAcrossBanks (void) const;   // true if not specified
 
 	// HD44780 LCD
 	// GPIO pin numbers are chip numbers, not header positions
@@ -167,9 +168,19 @@ public:
 	// Load performance mode. 0 for load just rotating encoder, 1 load just when Select is pushed
 	bool GetPerformanceSelectToLoad (void) const;
 	unsigned GetPerformanceSelectChannel (void) const;
+	bool GetSaveSessionPerformance (void) const;
+
+	// minidexedsession.ini
+	unsigned GetSessionPerformance (void) const;
+	unsigned GetSessionPerformanceBank (void) const;
+	void SetSessionPerformance (unsigned nValue);
+	void SetSessionPerformanceBank (unsigned nValue);
+	
+	bool SaveSessionSettings (void);
 
 private:
 	CPropertiesFatFsFile m_Properties;
+	CPropertiesFatFsFile m_SessionSettings;
 	
 	bool m_bUSBGadgetMode;
 
@@ -183,6 +194,7 @@ private:
 	unsigned m_nMIDIBaudRate;
 	std::string m_MIDIThruIn;
 	std::string m_MIDIThruOut;
+    unsigned m_nMIDIOutTg;
 	bool m_bMIDIRXProgramChange;
 	bool m_bIgnoreAllNotesOff;
 	bool m_bMIDIAutoVoiceDumpOnPC;
@@ -251,7 +263,12 @@ private:
 	bool m_bMIDIDumpEnabled;
 	bool m_bProfileEnabled;
 	bool m_bPerformanceSelectToLoad;
-	unsigned m_bPerformanceSelectChannel;
+	unsigned m_nPerformanceSelectChannel;
+	bool m_bSaveSessionPerformance;
+
+	// minidexedsession.ini
+	unsigned m_nSessionPerformance;
+	unsigned m_nSessionPerformanceBank;
 };
 
 #endif

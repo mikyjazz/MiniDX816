@@ -120,22 +120,21 @@ public:
 
 	std::string GetPerformanceFileName(unsigned nID);
 	std::string GetPerformanceName(unsigned nID);
-	unsigned GetLastPerformance();
-	unsigned GetPerformanceBank();
-	unsigned GetLastPerformanceBank();
-	unsigned GetActualPerformanceID();
-	void SetActualPerformanceID(unsigned nID);
-	unsigned GetActualPerformanceBankID();
-	void SetActualPerformanceBankID(unsigned nBankID);
-	bool SetNewPerformance(unsigned nID);
-	bool SetNewPerformanceBank(unsigned nBankID);
-	void SetFirstPerformance(void);
-	void DoSetFirstPerformance(void);
+	unsigned GetLastPerformanceID();
+	unsigned GetPerformanceBankID();
+	unsigned GetLastPerformanceBankID();
+	unsigned GetPerformanceID();
+	void SetPerformanceID(unsigned nID);
+	void SetPerformanceBankID(unsigned nBankID);
+	bool LoadPerformance(unsigned nID);
+	bool LoadPerformanceBank(unsigned nBankID);
+	void LoadFirstPerformance(void);
+	void DoLoadFirstPerformance(void);
 	bool SavePerformanceNewFile ();
 	
 	bool DoSavePerformanceNewFile (void);
-	bool DoSetNewPerformance (void);
-	bool DoSetNewPerformanceBank (void);
+	bool DoLoadPerformance (void);
+	bool DoLoadPerformanceBank (void);
 	bool GetPerformanceSelectToLoad(void);
 	bool SavePerformance (bool bSaveAsDeault);
 	unsigned GetPerformanceSelectChannel (void);
@@ -174,7 +173,7 @@ public:
 		TGParameterVoiceBank,
 		TGParameterVoiceBankMSB,
 		TGParameterVoiceBankLSB,
-		TGParameterProgram,
+		TGParameterVoice,
 		TGParameterVolume,
 		TGParameterPan,
 		TGParameterMasterTune,
@@ -225,7 +224,8 @@ public:
 	bool SavePerformance (void);
 	bool DoSavePerformance (void);
 
-	void setMasterVolume (float32_t vol);
+	void SetMasterVolume (float32_t vol);
+	float32_t GetMasterVolume ();
 
 private:
 	int16_t ApplyNoteLimits (int16_t pitch, unsigned nTG);	// returns < 0 to ignore note
@@ -255,7 +255,7 @@ private:
 	unsigned m_nVoiceBankIDMSB[CConfig::ToneGenerators];
 	unsigned m_nVoiceBankIDPerformance;
 	unsigned m_nVoiceBankIDMSBPerformance;
-	unsigned m_nProgram[CConfig::ToneGenerators];
+	unsigned m_nVoice[CConfig::ToneGenerators];
 	unsigned m_nVolume[CConfig::ToneGenerators];
 	unsigned m_nPan[CConfig::ToneGenerators];
 	int m_nMasterTune[CConfig::ToneGenerators];
@@ -320,15 +320,16 @@ private:
 
 	bool m_bSavePerformance;
 	bool m_bSavePerformanceNewFile;
-	bool m_bSetNewPerformance;
-	unsigned m_nSetNewPerformanceID;	
-	bool m_bSetNewPerformanceBank;
-	unsigned m_nSetNewPerformanceBankID;	
-	bool m_bSetFirstPerformance;
-	bool	m_bDeletePerformance;
+	bool m_bLoadPerformance;
+	unsigned m_nLoadPerformanceID;	
+	bool m_bLoadPerformanceBank;
+	unsigned m_nLoadPerformanceBankID;	
+	bool m_bLoadFirstPerformance;
+	bool m_bDeletePerformance;
 	unsigned m_nDeletePerformanceID;
 	bool m_bLoadPerformanceBusy;
 	bool m_bLoadPerformanceBankBusy;
+	bool m_bLoadInitialSettings;
 	bool m_bSaveAsDeault;
 };
 

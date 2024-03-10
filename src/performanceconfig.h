@@ -29,6 +29,7 @@
 #define NUM_VOICE_PARAM 156
 #define NUM_PERFORMANCES 128
 #define NUM_PERFORMANCE_BANKS 128
+#define USE_LECAGY_PERFORMANCE_NAME 1
 
 class CPerformanceConfig	// Performance configuration
 {
@@ -36,7 +37,7 @@ public:
 	CPerformanceConfig (FATFS *pFileSystem);
 	~CPerformanceConfig (void);
 	
-	bool Init (void);
+	bool Init (unsigned nBank, unsigned nPerformance);
 
 	bool Load (void);
 
@@ -121,31 +122,30 @@ public:
 	void SetReverbLevel (unsigned nValue);
 
 	bool VoiceDataFilled(unsigned nTG);
-	bool ListPerformances(); 
+	bool LoadPerformances(); 
 	//std::string m_DirName;
-	void SetNewPerformance (unsigned nID);
+	void LoadPerformance (unsigned nID);
 	unsigned FindFirstPerformance (void);
 	std::string GetPerformanceFileName(unsigned nID);
 	std::string GetPerformanceFullFilePath(unsigned nID);
 	std::string GetPerformanceName(unsigned nID);
-	unsigned GetLastPerformance();
-	unsigned GetLastPerformanceBank();
-	void SetActualPerformanceID(unsigned nID);
-	unsigned GetActualPerformanceID();
-	void SetActualPerformanceBankID(unsigned nBankID);
-	unsigned GetActualPerformanceBankID();
+	unsigned GetLastPerformanceID();
+	unsigned GetLastPerformanceBankID();
+	void SetPerformanceID(unsigned nID);
+	unsigned GetPerformanceID();
+	void SetPerformanceBankID(unsigned nBankID);
+	unsigned GetPerformanceBankID();
 	bool CreateNewPerformanceFile(void);
 	bool GetInternalFolderOk(); 
 	std::string GetNewPerformanceDefaultName(void);
 	void SetNewPerformanceName(std::string nName);
 	bool DeletePerformance(unsigned nID);
 	bool CheckFreePerformanceSlot(void);
-	std::string AddPerformanceBankDirName(unsigned nBankID);
+	std::string GetPerformanceBankDirName(unsigned nBankID);
 	bool IsValidPerformance(unsigned nID);
 
-	bool ListPerformanceBanks(void); 
-	void SetNewPerformanceBank(unsigned nBankID);
-	unsigned GetPerformanceBank(void);
+	bool LoadPerformanceBanks(void); 
+	void LoadPerformanceBank(unsigned nBankID);
 	std::string GetPerformanceBankName(unsigned nBankID);
 	bool IsValidPerformanceBank(unsigned nBankID);
 
@@ -181,11 +181,10 @@ private:
 	unsigned m_nAftertouchRange[CConfig::ToneGenerators];	
 	unsigned m_nAftertouchTarget[CConfig::ToneGenerators];	
 
-	unsigned m_nLastPerformance;  
-	unsigned m_nActualPerformance = 0;  
-	unsigned m_nActualPerformanceBank = 0;  
-	unsigned m_nPerformanceBank;
-	unsigned m_nLastPerformanceBank;  
+	unsigned m_nLastPerformanceID;  
+	unsigned m_nPerformanceID = 0;  
+	unsigned m_nPerformanceBankID = 0;
+	unsigned m_nLastPerformanceBankID;  
 	bool     m_bPerformanceDirectoryExists;
 	//unsigned nMenuSelectedPerformance = 0; 
 	std::string m_PerformanceFileName[NUM_PERFORMANCES];
@@ -193,7 +192,8 @@ private:
 	FATFS *m_pFileSystem; 
 
 	std::string NewPerformanceName="";
-	
+
+	//effects
 	bool m_bCompressorEnable;
 	bool m_bReverbEnable;
 	unsigned m_nReverbSize;

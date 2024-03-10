@@ -67,7 +67,8 @@ bool CUserInterface::Initialize (void)
 				return false;
 			}
 			m_pLCD = m_pSSD1306;
-		} else if (i2caddr == 0)
+		} 
+		else if (i2caddr == 0)
 		{
 			m_pHD44780 = new CHD44780Device (m_pConfig->GetLCDColumns (), m_pConfig->GetLCDRows (),
 							 m_pConfig->GetLCDPinData4 (),
@@ -117,6 +118,7 @@ bool CUserInterface::Initialize (void)
 									m_pConfig->GetButtonActionSelect (),
 									m_pConfig->GetButtonPinHome (),
 									m_pConfig->GetButtonActionHome (),
+
 									m_pConfig->GetButtonPinPgmUp (),
 									m_pConfig->GetButtonActionPgmUp (),
 									m_pConfig->GetButtonPinPgmDown (),
@@ -125,8 +127,10 @@ bool CUserInterface::Initialize (void)
 									m_pConfig->GetButtonActionTGUp (),
 									m_pConfig->GetButtonPinTGDown (),
 									m_pConfig->GetButtonActionTGDown (),
+
 									m_pConfig->GetDoubleClickTimeout (),
 									m_pConfig->GetLongPressTimeout (),
+									
 									m_pConfig->GetMIDIButtonNotes (),
 									m_pConfig->GetMIDIButtonPrev (),
 									m_pConfig->GetMIDIButtonNext (),

@@ -21,10 +21,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "config.h"
+#include "performanceconfig.h"
 #include "../Synth_Dexed/src/dexed.h"
+#include <cstring> 
+#include <algorithm>
 
 CConfig::CConfig (FATFS *pFileSystem)
-:	m_Properties ("minidexed.ini", pFileSystem)
+:	m_Properties ("minidexed.ini", pFileSystem),
+    m_SessionSettings ("minidexedsession.ini", pFileSystem)
 {
 }
 
@@ -32,10 +36,14 @@ CConfig::~CConfig (void)
 {
 }
 
+// load configuration files
 void CConfig::Load (void)
 {
+	// static properties
 	m_Properties.Load ();
-	
+	// last settings
+	m_SessionSettings.Load ();
+
 	m_bUSBGadgetMode = m_Properties.GetNumber ("USBGadget", 0) != 0;
 
 	m_SoundDevice = m_Properties.GetString ("SoundDevice", "pwm");
@@ -49,7 +57,7 @@ void CConfig::Load (void)
 	m_nDACI2CAddress = m_Properties.GetNumber ("DACI2CAddress", 0);
 	m_bChannelsSwapped = m_Properties.GetNumber ("ChannelsSwapped", 0) != 0;
 
-		unsigned newEngineType = m_Properties.GetNumber ("EngineType", 1);
+	unsigned newEngineType = m_Properties.GetNumber ("EngineType", 1);
 	if (newEngineType == 2) {
   		m_EngineType = MKI;
 	} else if (newEngineType == 3) {
@@ -79,7 +87,7 @@ void CConfig::Load (void)
 			}
 		}
 	}
-	
+    m_nMIDIOutTg = m_Properties.GetNumber("MIDIOutTg", 0);	
 	m_bMIDIRXProgramChange = m_Properties.GetNumber ("MIDIRXProgramChange", 1) != 0;
 	m_bIgnoreAllNotesOff = m_Properties.GetNumber ("IgnoreAllNotesOff", 0) != 0;
 	m_bMIDIAutoVoiceDumpOnPC = m_Properties.GetNumber ("MIDIAutoVoiceDumpOnPC", 1) != 0;
@@ -151,7 +159,14 @@ void CConfig::Load (void)
 	m_bMIDIDumpEnabled  = m_Properties.GetNumber ("MIDIDumpEnabled", 0) != 0;
 	m_bProfileEnabled = m_Properties.GetNumber ("ProfileEnabled", 0) != 0;
 	m_bPerformanceSelectToLoad = m_Properties.GetNumber ("PerformanceSelectToLoad", 1) != 0;
-	m_bPerformanceSelectChannel = m_Properties.GetNumber ("PerformanceSelectChannel", 0);
+	m_nPerformanceSelectChannel = m_Properties.GetNumber ("PerformanceSelectChannel", 0);
+	m_bSaveSessionPerformance = m_Properties.GetNumber("SaveSessionPerformance", 0) != 0;
+
+	// minidexedsession.ini
+	m_nSessionPerformance = m_SessionSettings.GetNumber ("SessionPerformance", 1);
+	if (m_nSessionPerformance > 0) m_nSessionPerformance--;
+	m_nSessionPerformanceBank = m_SessionSettings.GetNumber ("SessionPerformanceBank", 1);
+	if (m_nSessionPerformanceBank > 0) m_nSessionPerformanceBank--;
 }
 
 bool CConfig::GetUSBGadgetMode (void) const
@@ -202,6 +217,11 @@ const char *CConfig::GetMIDIThruIn (void) const
 const char *CConfig::GetMIDIThruOut (void) const
 {
 	return m_MIDIThruOut.c_str ();
+}
+
+unsigned CConfig::GetMIDIOutTg(void) const
+{
+        return m_nMIDIOutTg;
 }
 
 bool CConfig::GetMIDIRXProgramChange (void) const
@@ -501,5 +521,46 @@ bool CConfig::GetPerformanceSelectToLoad (void) const
 
 unsigned CConfig::GetPerformanceSelectChannel (void) const
 {
-	return m_bPerformanceSelectChannel;
+	return m_nPerformanceSelectChannel;
 }
+
+bool CConfig::GetSaveSessionPerformance (void) const
+{
+	return m_bSaveSessionPerformance;
+}
+
+// minidexedsession.ini
+
+unsigned CConfig::GetSessionPerformance (void) const
+{
+	return m_nSessionPerformance;
+}
+
+unsigned CConfig::GetSessionPerformanceBank (void) const
+{
+	return m_nSessionPerformanceBank;
+}
+
+void CConfig::SetSessionPerformance (unsigned nValue)
+{
+	assert (nValue < NUM_PERFORMANCES);
+	m_nSessionPerformance = nValue;
+}
+
+void CConfig::SetSessionPerformanceBank (unsigned nValue)
+{
+	assert (nValue < NUM_PERFORMANCE_BANKS);
+	m_nSessionPerformanceBank = nValue;
+}
+
+// save ast settings  file
+bool CConfig::SaveSessionSettings (void)
+{
+	//m_LastSettings.RemoveAll ();
+
+	m_SessionSettings.SetNumber ("SessionPerformance", m_nSessionPerformance+1);
+	m_SessionSettings.SetNumber ("SessionPerformanceBank", m_nSessionPerformanceBank+1);
+
+	return m_SessionSettings.Save ();
+}
+

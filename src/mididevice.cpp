@@ -179,7 +179,7 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 	{
 		float32_t nMasterVolume=((pMessage[5] & 0x7c) & ((pMessage[6] & 0x7c) <<7))/(1<<14);
 		LOGNOTE("Master volume: %f",nMasterVolume);
-		m_pSynthesizer->setMasterVolume(nMasterVolume);
+		m_pSynthesizer->SetMasterVolume(nMasterVolume);
 	}
 	else
 	{

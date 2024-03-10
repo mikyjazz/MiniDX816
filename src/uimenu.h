@@ -81,17 +81,17 @@ private:
 private:
 	static void MenuHandler (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditGlobalParameter (CUIMenu *pUIMenu, TMenuEvent Event);
-	static void EditVoiceBankNumber (CUIMenu *pUIMenu, TMenuEvent Event);
-	static void EditProgramNumber (CUIMenu *pUIMenu, TMenuEvent Event);
+	static void SelectVoiceBank (CUIMenu *pUIMenu, TMenuEvent Event);
+	static void SelectVoice (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditTGParameter (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditVoiceParameter (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditOPParameter (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void SavePerformance (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditTGParameter2 (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditTGParameterModulation (CUIMenu *pUIMenu, TMenuEvent Event); 	
-	static void PerformanceMenu (CUIMenu *pUIMenu, TMenuEvent Event);
+	static void SelectPerformance (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void SavePerformanceNewFile (CUIMenu *pUIMenu, TMenuEvent Event);
-	static void EditPerformanceBankNumber (CUIMenu *pUIMenu, TMenuEvent Event);
+	static void SelectPerformanceBank (CUIMenu *pUIMenu, TMenuEvent Event);
 	
 	static std::string GetGlobalValueString (unsigned nParameter, int nValue);
 	static std::string GetTGValueString (unsigned nTGParameter, int nValue);
@@ -169,8 +169,8 @@ private:
 	unsigned m_InputTextChar=32;
 	bool m_bPerformanceDeleteMode=false;
 	bool m_bConfirmDeletePerformance=false;
-	unsigned m_nSelectedPerformanceID =0;
-	unsigned m_nSelectedPerformanceBankID =0;
+	unsigned m_nSelectedPerformanceID = 9999;
+	unsigned m_nSelectedPerformanceBankID = 9999;
 	bool m_bSplashShow=false;
 
 };

@@ -45,25 +45,10 @@ CPerformanceConfig::~CPerformanceConfig (void)
 {
 }
 
-bool CPerformanceConfig::Init (void)
+bool CPerformanceConfig::Init (unsigned nBank, unsigned nPerformance)
 {
-	// Check intermal performance directory exists
-	DIR Directory;
-	FRESULT Result;
-	//Check if internal "performance" directory exists
-	Result = f_opendir (&Directory, "SD:/" PERFORMANCE_DIR);
-	if (Result == FR_OK)
-	{
-		m_bPerformanceDirectoryExists=true;		
-		Result = f_closedir (&Directory);
-	}
-	else
-	{
-		m_bPerformanceDirectoryExists = false;
-	}
-	
-	// List banks if present
-	ListPerformanceBanks();
+	//check performance files structure and load the bank list if present
+	LoadPerformanceBanks();
 
 #ifdef VERBOSE_DEBUG
 #warning "PerformanceConfig in verbose debug printing mode"
@@ -72,20 +57,24 @@ bool CPerformanceConfig::Init (void)
 	{
 		if (!m_PerformanceBankName[i].empty())
 		{
-			SetNewPerformanceBank(i);
-			SetNewPerformance(0);
+			LoadPerformanceBank(i);
+			LoadPerformance(0);
 		}
 	}
 #endif
-	// Set to default initial bank
-	SetNewPerformanceBank(0);
-	SetNewPerformance(0);
 
-	LOGNOTE ("Loaded Default Performance Bank - Last Performance: %d", m_nLastPerformance + 1); // Show "user facing" index
+	// Set initial bank
+	LoadPerformanceBank(nBank);
+	LoadPerformance(nPerformance);
 
+	if (nBank == 0 && nPerformance == 0) 
+	{
+		LOGNOTE ("Loaded Default Performance Bank 0 - Last Performance: %d", m_nLastPerformanceID + 1); // Show "user facing" index
+	}
 	return true;
 }
 
+// load performance file in memory arrays
 bool CPerformanceConfig::Load (void)
 {
 	if (!m_Properties.Load ())
@@ -95,6 +84,7 @@ bool CPerformanceConfig::Load (void)
 
 	bool bResult = false;
 
+	// config tone generators
 	for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
 	{
 		CString PropertyName;
@@ -198,8 +188,9 @@ bool CPerformanceConfig::Load (void)
 		PropertyName.Format ("AftertouchTarget%u", nTG+1);
 		m_nAftertouchTarget[nTG] = m_Properties.GetNumber (PropertyName, 0);
 		
-		}
+	}
 
+	// config effects
 	m_bCompressorEnable = m_Properties.GetNumber ("CompressorEnable", 1) != 0;
 
 	m_bReverbEnable = m_Properties.GetNumber ("ReverbEnable", 1) != 0;
@@ -213,6 +204,7 @@ bool CPerformanceConfig::Load (void)
 	return bResult;
 }
 
+// save performance file
 bool CPerformanceConfig::Save (void)
 {
 	m_Properties.RemoveAll ();
@@ -316,7 +308,7 @@ bool CPerformanceConfig::Save (void)
 		PropertyName.Format ("AftertouchTarget%u", nTG+1);
 		m_Properties.SetNumber (PropertyName, m_nAftertouchTarget[nTG]);			
 
-		}
+	}
 
 	m_Properties.SetNumber ("CompressorEnable", m_bCompressorEnable ? 1 : 0);
 
@@ -764,22 +756,18 @@ bool CPerformanceConfig::VoiceDataFilled(unsigned nTG)
 std::string CPerformanceConfig::GetPerformanceFileName(unsigned nID)
 {
 	assert (nID < NUM_PERFORMANCES);
-	std::string FileN = "";
-	if ((m_nPerformanceBank==0) && (nID == 0)) // in order to assure retrocompatibility
+	std::string FileN;
+	if ((USE_LECAGY_PERFORMANCE_NAME != 0) && (m_nPerformanceBankID==0) && (nID == 0)) // in order to assure retrocompatibility
 	{
-		FileN += DEFAULT_PERFORMANCE_FILENAME;
+		FileN = DEFAULT_PERFORMANCE_FILENAME;
 	}
 	else
 	{
 		// Build up from the index, "_", performance name, and ".ini"
 		// NB: Index on disk = index in memory + 1
-		std::string nIndex = "000000";
-		nIndex += std::to_string(nID+1);
-		nIndex = nIndex.substr(nIndex.length()-6,6);
-		FileN += nIndex;
-		FileN += "_";
-		FileN += m_PerformanceFileName[nID];
-		FileN += ".ini";
+		std::string nIndex = "00000" + std::to_string(nID + 1);
+		nIndex = nIndex.substr(nIndex.size() - 6);
+		FileN = nIndex + "_" + m_PerformanceFileName[nID] + ".ini";
 	}
 	return FileN;
 }
@@ -788,7 +776,7 @@ std::string CPerformanceConfig::GetPerformanceFullFilePath(unsigned nID)
 {
 	assert (nID < NUM_PERFORMANCES);
 	std::string FileN = "SD:/";
-	if ((m_nPerformanceBank == 0) && (nID == 0))
+	if ((USE_LECAGY_PERFORMANCE_NAME != 0) && (m_nPerformanceBankID == 0) && (nID == 0))
 	{
 		// Special case for the legacy Bank 1/Default performance
 		FileN += DEFAULT_PERFORMANCE_FILENAME;
@@ -798,7 +786,7 @@ std::string CPerformanceConfig::GetPerformanceFullFilePath(unsigned nID)
 		if (m_bPerformanceDirectoryExists)
 		{
 			FileN += PERFORMANCE_DIR;
-			FileN += AddPerformanceBankDirName(m_nPerformanceBank);
+			FileN += GetPerformanceBankDirName(m_nPerformanceBankID);
 			FileN += "/";
 			FileN += GetPerformanceFileName(nID);
 		}
@@ -809,7 +797,7 @@ std::string CPerformanceConfig::GetPerformanceFullFilePath(unsigned nID)
 std::string CPerformanceConfig::GetPerformanceName(unsigned nID)
 {
 	assert (nID < NUM_PERFORMANCES);
-	if ((m_nPerformanceBank==0) && (nID == 0)) // in order to assure retrocompatibility
+	if ((USE_LECAGY_PERFORMANCE_NAME != 0) && (m_nPerformanceBankID==0) && (nID == 0)) // in order to assure retrocompatibility
 	{
 		return DEFAULT_PERFORMANCE_NAME;
 	}
@@ -819,36 +807,36 @@ std::string CPerformanceConfig::GetPerformanceName(unsigned nID)
 	}
 }
 
-unsigned CPerformanceConfig::GetLastPerformance()
+unsigned CPerformanceConfig::GetLastPerformanceID()
 {
-	return m_nLastPerformance;
+	return m_nLastPerformanceID;
 }
 
-unsigned CPerformanceConfig::GetLastPerformanceBank()
+unsigned CPerformanceConfig::GetLastPerformanceBankID()
 {
-	return m_nLastPerformanceBank;
+	return m_nLastPerformanceBankID;
 }
 
-unsigned CPerformanceConfig::GetActualPerformanceID()
+unsigned CPerformanceConfig::GetPerformanceID()
 {
-	return m_nActualPerformance;
+	return m_nPerformanceID;
 }
 
-void CPerformanceConfig::SetActualPerformanceID(unsigned nID)
+void CPerformanceConfig::SetPerformanceID(unsigned nID)
 {
 	assert (nID < NUM_PERFORMANCES);
-	m_nActualPerformance = nID;
+	m_nPerformanceID = nID;
 }
 
-unsigned CPerformanceConfig::GetActualPerformanceBankID()
+unsigned CPerformanceConfig::GetPerformanceBankID()
 {
-	return m_nActualPerformanceBank;
+	return m_nPerformanceBankID;
 }
 
-void CPerformanceConfig::SetActualPerformanceBankID(unsigned nBankID)
+void CPerformanceConfig::SetPerformanceBankID(unsigned nBankID)
 {
 	assert (nBankID < NUM_PERFORMANCE_BANKS);
-	m_nActualPerformanceBank = nBankID;
+	m_nPerformanceBankID = nBankID;
 }
 
 bool CPerformanceConfig::GetInternalFolderOk()
@@ -869,10 +857,9 @@ bool CPerformanceConfig::IsValidPerformance(unsigned nID)
 	return false;
 }
 
-
 bool CPerformanceConfig::CheckFreePerformanceSlot(void)
 {
-	if (m_nLastPerformance < NUM_PERFORMANCES-1)
+	if (m_nLastPerformanceID < NUM_PERFORMANCES-1)
 	{
 		// There is a free slot...
 		return true;
@@ -891,7 +878,7 @@ bool CPerformanceConfig::CreateNewPerformanceFile(void)
 		LOGNOTE("Performance directory does not exist");
 		return false;
 	}
-	if (m_nLastPerformance >= NUM_PERFORMANCES) {
+	if (m_nLastPerformanceID >= NUM_PERFORMANCES) {
 		// No space left for new performances
 		LOGWARN ("No space left for new performance");
 		return false;
@@ -910,12 +897,11 @@ bool CPerformanceConfig::CreateNewPerformanceFile(void)
 
 	std::string sPerformanceName = NewPerformanceName;
 	NewPerformanceName=""; 
-	unsigned nNewPerformance = m_nLastPerformance + 1;
+	unsigned nNewPerformance = m_nLastPerformanceID + 1;
 	std::string nFileName;
 	std::string nPath;
-	std::string nIndex = "000000";
-	nIndex += std::to_string(nNewPerformance+1);  // Index on disk = index in memory+1
-	nIndex = nIndex.substr(nIndex.length()-6,6);
+	std::string nIndex = "00000" + std::to_string(nNewPerformance + 1);  // Index on disk = index in memory+1
+	nIndex = nIndex.substr(nIndex.size() - 6);
 	
 
 	nFileName = nIndex;
@@ -934,7 +920,7 @@ bool CPerformanceConfig::CreateNewPerformanceFile(void)
 	
 	nPath = "SD:/" ;
 	nPath += PERFORMANCE_DIR;
-	nPath += AddPerformanceBankDirName(m_nPerformanceBank);
+	nPath += GetPerformanceBankDirName(m_nPerformanceBankID);
 	nPath += "/";
 	nFileName = nPath + nFileName;
 	
@@ -952,22 +938,22 @@ bool CPerformanceConfig::CreateNewPerformanceFile(void)
 		return false;
 	}
 	
-	m_nLastPerformance = nNewPerformance;
-	m_nActualPerformance = nNewPerformance;
+	m_nLastPerformanceID = nNewPerformance;
+	m_nPerformanceID = nNewPerformance;
 	new (&m_Properties) CPropertiesFatFsFile(nFileName.c_str(), m_pFileSystem);
 	
 	return true;
 }
 
-bool CPerformanceConfig::ListPerformances()
+bool CPerformanceConfig::LoadPerformances()
 {
 	// Clear any existing lists of performances
 	for (unsigned i=0; i<NUM_PERFORMANCES; i++)
 	{
 		m_PerformanceFileName[i].clear();
 	}
-	m_nLastPerformance=0;
-	if (m_nPerformanceBank == 0)
+	m_nLastPerformanceID=0;
+	if (m_nPerformanceBankID == 0 && (USE_LECAGY_PERFORMANCE_NAME != 0) )
 	{
 		// The first bank is the default performance directory
 	   	m_PerformanceFileName[0]=DEFAULT_PERFORMANCE_NAME; // in order to assure retrocompatibility
@@ -978,9 +964,9 @@ bool CPerformanceConfig::ListPerformances()
 		DIR Directory;
 		FILINFO FileInfo;
 		FRESULT Result;
-		std::string PerfDir = "SD:/" PERFORMANCE_DIR + AddPerformanceBankDirName(m_nPerformanceBank);
+		std::string PerfDir = "SD:/" PERFORMANCE_DIR + GetPerformanceBankDirName(m_nPerformanceBankID);
 #ifdef VERBOSE_DEBUG
-		LOGNOTE("Listing Performances from %s", PerfDir.c_str());
+		LOGNOTE("Loading Performances from %s", PerfDir.c_str());
 #endif
 		Result = f_opendir (&Directory, PerfDir.c_str());
 		if (Result != FR_OK)
@@ -1022,9 +1008,9 @@ bool CPerformanceConfig::ListPerformances()
 						nPIndex = nPIndex-1;
 						if (m_PerformanceFileName[nPIndex].empty())
 						{
-							if(nPIndex > m_nLastPerformance)
+							if(nPIndex > m_nLastPerformanceID)
 							{
-								m_nLastPerformance=nPIndex;
+								m_nLastPerformanceID=nPIndex;
 							}
 
 							std::string FileName = OriFileName.substr(0,OriFileName.length()-4).substr(7,14);
@@ -1050,10 +1036,10 @@ bool CPerformanceConfig::ListPerformances()
 	return true;
 }
 
-void CPerformanceConfig::SetNewPerformance (unsigned nID)
+void CPerformanceConfig::LoadPerformance (unsigned nID)
 {
 	assert (nID < NUM_PERFORMANCES);
-	m_nActualPerformance=nID;
+	m_nPerformanceID=nID;
 	std::string FileN = GetPerformanceFullFilePath(nID);
 
 	new (&m_Properties) CPropertiesFatFsFile(FileN.c_str(), m_pFileSystem);
@@ -1077,9 +1063,8 @@ unsigned CPerformanceConfig::FindFirstPerformance (void)
 
 std::string CPerformanceConfig::GetNewPerformanceDefaultName(void)
 {
-	std::string nIndex = "000000";
-	nIndex += std::to_string(m_nLastPerformance+1+1); // Convert from internal 0.. index to a file-based 1.. index to show the user
-	nIndex = nIndex.substr(nIndex.length()-6,6);
+	std::string nIndex = "00000" + std::to_string(m_nLastPerformanceID + 2); // Convert from internal 0.. index to a file-based 1.. index to show the user
+	nIndex = nIndex.substr(nIndex.size() - 6);
 	return "Perf" + nIndex;
 }
 
@@ -1105,12 +1090,12 @@ bool CPerformanceConfig::DeletePerformance(unsigned nID)
 		return false;
 	}
 	bool bOK = false;
-	if((m_nPerformanceBank == 0) && (nID == 0)){return bOK;} // default (performance.ini at root directory) can't be deleted
+	if((m_nPerformanceBankID == 0) && (nID == 0)){return bOK;} // default (performance.ini at root directory) can't be deleted
 	DIR Directory;
 	FILINFO FileInfo;
 	std::string FileN = "SD:/";
 	FileN += PERFORMANCE_DIR;
-	FileN += AddPerformanceBankDirName(m_nPerformanceBank);
+	FileN += GetPerformanceBankDirName(m_nPerformanceBankID);
 	
 	FRESULT Result = f_findfirst (&Directory, &FileInfo, FileN.c_str(), GetPerformanceFileName(nID).c_str());
 	if (Result == FR_OK && FileInfo.fname[0])
@@ -1120,18 +1105,18 @@ bool CPerformanceConfig::DeletePerformance(unsigned nID)
 		Result=f_unlink (FileN.c_str());
 		if (Result == FR_OK)
 		{
-			SetNewPerformance(0);
-			m_nActualPerformance =0;
+			LoadPerformance(0);
+			m_nPerformanceID=0;
 			//nMenuSelectedPerformance=0;
 			m_PerformanceFileName[nID].clear();
 			// If this was the last performance in the bank...
-			if (nID == m_nLastPerformance)
+			if (nID == m_nLastPerformanceID)
 			{
 				do
 				{
 					// Find the new last performance
-					m_nLastPerformance--;
-				} while (!IsValidPerformance(m_nLastPerformance) && (m_nLastPerformance > 0));
+					m_nLastPerformanceID--;
+				} while (!IsValidPerformance(m_nLastPerformanceID) && (m_nLastPerformanceID > 0));
 			}
 			bOK=true;
 		}
@@ -1143,15 +1128,14 @@ bool CPerformanceConfig::DeletePerformance(unsigned nID)
 	return bOK;
 }
 
-bool CPerformanceConfig::ListPerformanceBanks()
+bool CPerformanceConfig::LoadPerformanceBanks()
 {
-	m_nPerformanceBank = 0;
-	m_nLastPerformance = 0;
-	m_nLastPerformanceBank = 0;
+	m_nPerformanceBankID = 0;
+	m_nLastPerformanceID = 0;
+	m_nLastPerformanceBankID = 0;
 
 	// Open performance directory
 	DIR Directory;
-	FILINFO FileInfo;
 	FRESULT Result;
 	Result = f_opendir (&Directory, "SD:/" PERFORMANCE_DIR);
 	if (Result != FR_OK)
@@ -1163,12 +1147,15 @@ bool CPerformanceConfig::ListPerformanceBanks()
 		return false;
 	}
 
+	m_bPerformanceDirectoryExists = true;
+
+	FILINFO FileInfo;
 	unsigned nNumBanks = 0;
 	
 	// Add in the default performance directory as the first bank
 	m_PerformanceBankName[0] = DEFAULT_PERFORMANCE_BANK_NAME;
 	nNumBanks = 1;
-	m_nLastPerformanceBank = 0;
+	m_nLastPerformanceBankID = 0;
 
 	// List directories with names in format 01_Perf Bank Name
 	Result = f_findfirst (&Directory, &FileInfo, "SD:/" PERFORMANCE_DIR, "*");
@@ -1202,9 +1189,9 @@ bool CPerformanceConfig::ListPerformanceBanks()
 						LOGNOTE ("Found performance bank %s (%d, %s)", OriFileName.c_str(), nBankIndex, BankName.c_str());
 #endif
 						nNumBanks++;
-						if (nBankIndex > m_nLastPerformanceBank)
+						if (nBankIndex > m_nLastPerformanceBankID)
 						{
-							m_nLastPerformanceBank = nBankIndex;
+							m_nLastPerformanceBankID = nBankIndex;
 						}
 					}
 					else
@@ -1221,12 +1208,12 @@ bool CPerformanceConfig::ListPerformanceBanks()
 					LOGNOTE ("Performance Bank number out of range: %s (%d to %d)", FileInfo.fname, 1, NUM_PERFORMANCE_BANKS);
 				}
 			}
+#ifdef VERBOSE_DEBUG
 			else
 			{
-#ifdef VERBOSE_DEBUG
 				LOGNOTE ("Skipping: %s", FileInfo.fname);
-#endif
 			}
+#endif
 		}
 		
 		Result = f_findnext (&Directory, &FileInfo);
@@ -1234,14 +1221,14 @@ bool CPerformanceConfig::ListPerformanceBanks()
 	
 	if (nNumBanks > 0)
 	{
-		LOGNOTE ("Number of Performance Banks: %d (last = %d)", nNumBanks, m_nLastPerformanceBank+1);
+		LOGNOTE ("Number of Performance Banks: %d (last = %d)", nNumBanks, m_nLastPerformanceBankID + 1);
 	}
 	
 	f_closedir (&Directory);
 	return true;
 }
 
-void CPerformanceConfig::SetNewPerformanceBank(unsigned nBankID)
+void CPerformanceConfig::LoadPerformanceBank(unsigned nBankID)
 {
 	assert (nBankID < NUM_PERFORMANCE_BANKS);
 	if (IsValidPerformanceBank(nBankID))
@@ -1249,21 +1236,15 @@ void CPerformanceConfig::SetNewPerformanceBank(unsigned nBankID)
 #ifdef VERBOSE_DEBUG
 		LOGNOTE("Selecting Performance Bank: %d", nBankID+1);
 #endif
-		m_nPerformanceBank = nBankID;
-		m_nActualPerformanceBank = nBankID;
-		ListPerformances();
+		m_nPerformanceBankID = nBankID;
+		LoadPerformances();
 	}
+#ifdef VERBOSE_DEBUG
 	else
 	{
-#ifdef VERBOSE_DEBUG
 		LOGNOTE("Not selecting invalid Performance Bank: %d", nBankID+1);
-#endif
 	}
-}
-
-unsigned CPerformanceConfig::GetPerformanceBank(void)
-{
-	return m_nPerformanceBank;
+#endif
 }
 
 std::string CPerformanceConfig::GetPerformanceBankName(unsigned nBankID)
@@ -1279,38 +1260,21 @@ std::string CPerformanceConfig::GetPerformanceBankName(unsigned nBankID)
 	}
 }
 
-std::string CPerformanceConfig::AddPerformanceBankDirName(unsigned nBankID)
+std::string CPerformanceConfig::GetPerformanceBankDirName(unsigned nBankID)
 {
 	assert (nBankID < NUM_PERFORMANCE_BANKS);
 	if (IsValidPerformanceBank(nBankID))
-	{
-		// Performance Banks directories in format "001_Bank Name"
-		std::string Index;
-		if (nBankID == 0)
+	{		
+		// Legacy: Bank 1 is the default performance directory
+		if (nBankID > 0)
 		{
-			// Legacy: Bank 1 is the default performance directory
-			return "";
+			// Performance Banks directories in format "001_Bank Name"
+			std::string Index = "00" + std::to_string(nBankID + 1);
+			Index = Index.substr(Index.size() - 3);
+			return "/" + Index + "_" + m_PerformanceBankName[nBankID];
 		}
-
-		if (nBankID < 9)
-		{
-			Index = "00" + std::to_string(nBankID+1);
-		}
-		else if (nBankID < 99)
-		{
-			Index = "0" + std::to_string(nBankID+1);
-		}
-		else
-		{
-			Index = std::to_string(nBankID+1);
-		}
-
-		return "/" + Index + "_" + m_PerformanceBankName[nBankID];
 	}
-	else
-	{
-		return "";
-	}
+	return "";
 }
 
 bool CPerformanceConfig::IsValidPerformanceBank(unsigned nBankID)
