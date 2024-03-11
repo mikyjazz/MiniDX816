@@ -224,8 +224,9 @@ public:
 	bool SavePerformance (void);
 	bool DoSavePerformance (void);
 
-	void SetMasterVolume (float32_t vol);
-	float32_t GetMasterVolume ();
+	void SetMasterVolume (unsigned vol);
+	unsigned GetMasterVolume ();
+	float32_t GetMasterVolumeF ();
 
 private:
 	int16_t ApplyNoteLimits (int16_t pitch, unsigned nTG);	// returns < 0 to ignore note
@@ -286,9 +287,6 @@ private:
   
 	uint8_t m_nRawVoiceData[156]; 
 	
-	
-	float32_t nMasterVolume;
-
 	CUserInterface m_UI;
 	CSysExFileLoader m_SysExFileLoader;
 	CPerformanceConfig m_PerformanceConfig;

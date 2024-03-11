@@ -167,6 +167,7 @@ void CConfig::Load (void)
 	if (m_nSessionPerformance > 0) m_nSessionPerformance--;
 	m_nSessionPerformanceBank = m_SessionSettings.GetNumber ("SessionPerformanceBank", 1);
 	if (m_nSessionPerformanceBank > 0) m_nSessionPerformanceBank--;
+	m_nSessionMasterVolume = m_SessionSettings.GetNumber ("SessionMasterVolume", 100);
 }
 
 bool CConfig::GetUSBGadgetMode (void) const
@@ -545,21 +546,36 @@ void CConfig::SetSessionPerformance (unsigned nValue)
 {
 	assert (nValue < NUM_PERFORMANCES);
 	m_nSessionPerformance = nValue;
+	SaveSessionSettings();
 }
 
 void CConfig::SetSessionPerformanceBank (unsigned nValue)
 {
 	assert (nValue < NUM_PERFORMANCE_BANKS);
 	m_nSessionPerformanceBank = nValue;
+	SaveSessionSettings();
 }
 
-// save ast settings  file
+unsigned CConfig::GetSessionMasterVolume (void) const
+{
+	return m_nSessionMasterVolume;
+}
+
+void CConfig::SetSessionMasterVolume (unsigned nValue)
+{
+	assert (nValue < 128);
+	m_nSessionMasterVolume = nValue;
+	SaveSessionSettings();
+}
+
+// save session settings  file
 bool CConfig::SaveSessionSettings (void)
 {
 	//m_LastSettings.RemoveAll ();
 
 	m_SessionSettings.SetNumber ("SessionPerformance", m_nSessionPerformance+1);
 	m_SessionSettings.SetNumber ("SessionPerformanceBank", m_nSessionPerformanceBank+1);
+	m_SessionSettings.SetNumber ("SessionMasterVolume", m_nSessionMasterVolume);
 
 	return m_SessionSettings.Save ();
 }

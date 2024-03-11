@@ -175,6 +175,8 @@ public:
 	unsigned GetSessionPerformanceBank (void) const;
 	void SetSessionPerformance (unsigned nValue);
 	void SetSessionPerformanceBank (unsigned nValue);
+	unsigned GetSessionMasterVolume (void) const;
+	void SetSessionMasterVolume (unsigned nValue);
 	
 	bool SaveSessionSettings (void);
 
@@ -269,6 +271,7 @@ private:
 	// minidexedsession.ini
 	unsigned m_nSessionPerformance;
 	unsigned m_nSessionPerformanceBank;
+	unsigned m_nSessionMasterVolume;
 };
 
 #endif

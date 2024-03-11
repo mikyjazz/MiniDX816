@@ -152,8 +152,6 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	}
 #endif
 
-	SetMasterVolume(1.0);
-
 	// BEGIN setup tg_mixer
 	tg_mixer = new AudioStereoMixer<CConfig::ToneGenerators>(pConfig->GetChunkSize()/2);
 	// END setup tgmixer
@@ -1141,7 +1139,7 @@ void CMiniDexed::ProcessSound (void)
 		// BEGIN TG mixing
 		float32_t tmp_float[nFrames*2];
 		int16_t tmp_int[nFrames*2];
-
+		float32_t nMasterVolume = GetMasterVolumeF();
 		if(nMasterVolume > 0.0)
 		{
 			for (uint8_t i = 0; i < CConfig::ToneGenerators; i++)
@@ -1553,19 +1551,25 @@ void CMiniDexed::getSysExVoiceDump(uint8_t* dest, uint8_t nTG)
 	dest[162] = 0xF7; // SysEx end
 }
 
-void CMiniDexed::SetMasterVolume (float32_t vol)
+void CMiniDexed::SetMasterVolume (unsigned vol)
 {
-	if(vol < 0.0)
-		vol = 0.0;
-	else if(vol > 1.0)
-		vol = 1.0;
-
-	nMasterVolume=vol;
+	assert(vol < 128);
+	m_pConfig->SetSessionMasterVolume(vol);
 }
 
-float32_t CMiniDexed::GetMasterVolume ()
+unsigned CMiniDexed::GetMasterVolume ()
 {
-	return nMasterVolume;
+	return m_pConfig->GetSessionMasterVolume();
+}
+
+float32_t CMiniDexed::GetMasterVolumeF ()
+{
+	float32_t vol = m_pConfig->GetSessionMasterVolume()/ 127.0f;
+	if (vol < 0.0)
+		vol = 0.0;
+	else if (vol > 1.0)
+		vol = 1.0;
+	return vol;
 }
 
 std::string CMiniDexed::GetPerformanceFileName(unsigned nID)
@@ -1645,7 +1649,6 @@ bool CMiniDexed::DoLoadPerformance (void)
 			if (m_pConfig->GetSaveSessionPerformance()) 
 			{
 				m_pConfig->SetSessionPerformance(nID);
-				m_pConfig->SaveSessionSettings();
 			}
 			result = true;
 		}
@@ -1669,7 +1672,6 @@ bool CMiniDexed::DoLoadPerformanceBank (void)
 		if (m_pConfig->GetSaveSessionPerformance()) 
 		{
 			m_pConfig->SetSessionPerformanceBank(nBankID);
-			m_pConfig->SaveSessionSettings();
 		}
 		result = true;
 		m_bLoadPerformanceBankBusy = false;
