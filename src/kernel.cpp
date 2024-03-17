@@ -64,7 +64,10 @@ bool CKernel::Initialize (void)
 		return FALSE;
 	}
 
-	m_Config.Load ();
+	if (!m_Config.Load ())
+	{
+		return FALSE;
+	}
 	
 	if (m_Config.GetUSBGadgetMode())
 	{
@@ -82,8 +85,7 @@ bool CKernel::Initialize (void)
 		return FALSE;
     }
 	
-	m_pDexed = new CMiniDexed (&m_Config, &mInterrupt, &m_GPIOManager, &m_I2CMaster,
-				   &mFileSystem);
+	m_pDexed = new CMiniDexed (&m_Config, &mInterrupt, &m_GPIOManager, &m_I2CMaster, &mFileSystem);
 	assert (m_pDexed);
 
 	if (!m_pDexed->Initialize ())
@@ -117,7 +119,7 @@ CStdlibApp::TShutdownMode CKernel::Run (void)
 
 void CKernel::PanicHandler (void)
 {
-	EnableIRQs ();
+	EnableIRQs();
 
 	if (s_pThis->mbScreenAvailable)
 	{

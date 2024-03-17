@@ -46,6 +46,7 @@
 
 #define MAX_MASTER_VOLUME 127
 #define STEP_MASTER_VOLUME 8
+#define MENU_CANCEL_DELAY 3000
 
 class CMiniDexed
 #ifdef ARM_ALLOW_MULTI_CORE

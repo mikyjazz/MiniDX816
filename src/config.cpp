@@ -27,8 +27,8 @@
 #include <algorithm>
 
 CConfig::CConfig (FATFS *pFileSystem)
-:	m_Properties ("minidexed.ini", pFileSystem),
-    m_SessionSettings ("minidexedsession.ini", pFileSystem)
+:	m_Properties ("dx816.ini", pFileSystem),
+    m_SessionSettings ("dx816session.ini", pFileSystem)
 {
 }
 
@@ -36,13 +36,24 @@ CConfig::~CConfig (void)
 {
 }
 
+unsigned CConfig::LCDColumns = 20;
+unsigned CConfig::LCDRows = 2;
+
 // load configuration files
-void CConfig::Load (void)
+bool CConfig::Load (void)
 {
 	// static properties
-	m_Properties.Load ();
+	if (!m_Properties.Load ()) 
+	{
+		return false;
+	}		
+
 	// last settings
-	m_SessionSettings.Load ();
+	if (!m_SessionSettings.Load ())
+	{
+		return false;
+	}
+		
 
 	m_bUSBGadgetMode = m_Properties.GetNumber ("USBGadget", 0) != 0;
 
@@ -110,8 +121,10 @@ void CConfig::Load (void)
 	m_bSSD1306LCDRotate = m_Properties.GetNumber ("SSD1306LCDRotate", 0) != 0;
 	m_bSSD1306LCDMirror = m_Properties.GetNumber ("SSD1306LCDMirror", 0) != 0;
 
-	m_nLCDColumns = m_Properties.GetNumber ("LCDColumns", 16);
-	m_nLCDRows = m_Properties.GetNumber ("LCDRows", 2);
+	//m_nLCDColumns = m_Properties.GetNumber ("LCDColumns", 16);
+	//m_nLCDRows = m_Properties.GetNumber ("LCDRows", 2);
+	LCDColumns = m_Properties.GetNumber ("LCDColumns", 16);
+	LCDRows = m_Properties.GetNumber ("LCDRows", 2);
 
 	m_nButtonPinPrev = m_Properties.GetNumber ("ButtonPinPrev", 0);
 	m_nButtonPinNext = m_Properties.GetNumber ("ButtonPinNext", 0);
@@ -162,12 +175,14 @@ void CConfig::Load (void)
 	m_nPerformanceSelectChannel = m_Properties.GetNumber ("PerformanceSelectChannel", 0);
 	m_bSaveSessionPerformance = m_Properties.GetNumber("SaveSessionPerformance", 0) != 0;
 
-	// minidexedsession.ini
-	m_nSessionPerformance = m_SessionSettings.GetNumber ("SessionPerformance", 1);
+	// dx816session.ini
+	m_nSessionPerformance = m_SessionSettings.GetNumber ("Performance", 1);
 	if (m_nSessionPerformance > 0) m_nSessionPerformance--;
-	m_nSessionPerformanceBank = m_SessionSettings.GetNumber ("SessionPerformanceBank", 1);
+	m_nSessionPerformanceBank = m_SessionSettings.GetNumber ("PerformanceBank", 1);
 	if (m_nSessionPerformanceBank > 0) m_nSessionPerformanceBank--;
-	m_nSessionMasterVolume = m_SessionSettings.GetNumber ("SessionMasterVolume", 100);
+	m_nSessionMasterVolume = m_SessionSettings.GetNumber ("MasterVolume", 100);
+
+	return true;
 }
 
 bool CConfig::GetUSBGadgetMode (void) const
@@ -322,12 +337,14 @@ bool CConfig::GetSSD1306LCDMirror (void) const
 
 unsigned CConfig::GetLCDColumns (void) const
 {
-	return m_nLCDColumns;
+	return LCDColumns;
+	//return m_nLCDColumns;
 }
 
 unsigned CConfig::GetLCDRows (void) const
 {
-	return m_nLCDRows;
+	return LCDRows;
+	//return m_nLCDRows;
 }
 
 unsigned CConfig::GetButtonPinPrev (void) const
@@ -530,7 +547,7 @@ bool CConfig::GetSaveSessionPerformance (void) const
 	return m_bSaveSessionPerformance;
 }
 
-// minidexedsession.ini
+// dx816session.ini
 
 unsigned CConfig::GetSessionPerformance (void) const
 {
@@ -571,11 +588,11 @@ void CConfig::SetSessionMasterVolume (unsigned nValue)
 // save session settings  file
 bool CConfig::SaveSessionSettings (void)
 {
-	//m_LastSettings.RemoveAll ();
+	m_SessionSettings.RemoveAll ();
 
-	m_SessionSettings.SetNumber ("SessionPerformance", m_nSessionPerformance+1);
-	m_SessionSettings.SetNumber ("SessionPerformanceBank", m_nSessionPerformanceBank+1);
-	m_SessionSettings.SetNumber ("SessionMasterVolume", m_nSessionMasterVolume);
+	m_SessionSettings.SetNumber ("Performance", m_nSessionPerformance+1);
+	m_SessionSettings.SetNumber ("PerformanceBank", m_nSessionPerformanceBank+1);
+	m_SessionSettings.SetNumber ("MasterVolume", m_nSessionMasterVolume);
 
 	return m_SessionSettings.Save ();
 }

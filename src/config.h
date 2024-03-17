@@ -54,14 +54,16 @@ public:
 #endif
 
 	// TODO - Leave this for uimenu.cpp for now, but it will need to be dynamic at some point...
-	static const unsigned LCDColumns = 16;		// HD44780 LCD
-	static const unsigned LCDRows = 2;
+	//static const unsigned LCDColumns = 16;		// HD44780 LCD
+	//static const unsigned LCDRows = 2;
+	static unsigned LCDColumns;
+	static unsigned LCDRows;
 
 public:
 	CConfig (FATFS *pFileSystem);
 	~CConfig (void);
 
-	void Load (void);
+	bool Load (void);
 	
 	// USB Mode
 	bool GetUSBGadgetMode (void) const;	// true if in USB gadget mode
@@ -218,10 +220,10 @@ private:
 	unsigned m_nSSD1306LCDHeight;
 	bool     m_bSSD1306LCDRotate;
 	bool     m_bSSD1306LCDMirror;
-	
-	unsigned m_nLCDColumns;
-	unsigned m_nLCDRows;
-	
+		
+	//unsigned m_nLCDColumns;
+	//unsigned m_nLCDRows;
+
 	unsigned m_nButtonPinPrev;
 	unsigned m_nButtonPinNext;
 	unsigned m_nButtonPinBack;

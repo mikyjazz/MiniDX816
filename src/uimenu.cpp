@@ -452,7 +452,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 			}	
 			pUIMenu->m_bSetMainVolume = false;				
 			pUIMenu->m_bShowSetMainVolume = false;
-			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (3000), TimerHandlerCancelTimed, 0, pUIMenu);
+			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (MENU_CANCEL_DELAY), TimerHandlerCancelTimed, 0, pUIMenu);
 			break;
 
 		case MenuEventHome:
@@ -476,7 +476,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 			{
 				pUIMenu->m_bSetMainVolume = false;				
 				pUIMenu->m_bShowSetMainVolume = false;
-				pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (3000), TimerHandlerCancelTimed, 0, pUIMenu);				
+				pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (MENU_CANCEL_DELAY), TimerHandlerCancelTimed, 0, pUIMenu);				
 			}
 			else
 			{
@@ -520,7 +520,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 			{
 					CTimer::Get ()->CancelKernelTimer (pUIMenu->m_hMainMenuTimer);
 			}
-			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (3000), TimerHandlerCancelTimed, 0, pUIMenu);
+			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (MENU_CANCEL_DELAY), TimerHandlerCancelTimed, 0, pUIMenu);
 			break;
 
 		case MenuEventStepUp:
@@ -546,7 +546,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 			{
 					CTimer::Get ()->CancelKernelTimer (pUIMenu->m_hMainMenuTimer);
 			}
-			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (3000), TimerHandlerCancelTimed, 0, pUIMenu);
+			pUIMenu->m_hMainMenuTimer = CTimer::Get ()->StartKernelTimer (MSEC2HZ (MENU_CANCEL_DELAY), TimerHandlerCancelTimed, 0, pUIMenu);
 			break;
 		case MenuEventCancelTimedFeature:
 			if (pUIMenu->m_bShowSetMainVolume)			
@@ -577,7 +577,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 			pUIMenu->m_pUI->DisplayWrite (
 				pUIMenu->m_pParentMenu[pUIMenu->m_nCurrentMenuItem].Name,
 				"",
-				"",
+				pUIMenu->m_pMiniDexed->GetPerformanceName(pUIMenu->m_pMiniDexed->GetPerformanceID()).c_str(),
 				false,
 				false);
 
@@ -1181,34 +1181,38 @@ string CUIMenu::GetOPValueString (unsigned nOPParameter, int nValue)
 	else
 	{
 		Result = to_string (nValue);
-	}
+	} 
 
 	return Result;
 }
 
 string CUIMenu::ToVolume (int nValue)
 {
-	static const unsigned MaxChars = CConfig::LCDColumns-2;
-	char VolumeBar[MaxChars+1];
-	memset (VolumeBar, 0xFF, sizeof VolumeBar);	// 0xFF is the block character
-	VolumeBar[nValue * MaxChars / 127] = '\0';
-
+	static unsigned MaxChars = CConfig::LCDColumns-2;
+	unsigned nIndex = nValue * MaxChars / 127;
+	string VolumeBar(nIndex, '\xFF');
 	return VolumeBar;
 }
 
 string CUIMenu::ToPan (int nValue)
 {
-	assert (CConfig::LCDColumns == 16);
-	static const unsigned MaxChars = CConfig::LCDColumns-3;
-	char PanMarker[MaxChars+1] = "......:......";
+	static unsigned MaxChars = CConfig::LCDColumns-3;
 	unsigned nIndex = nValue * MaxChars / 127;
 	if (nIndex == MaxChars)
 	{
 		nIndex--;
 	}
-	PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
-
-	return PanMarker;
+	if (CConfig::LCDColumns == 16) {
+		string PanMarker = "......:......";
+		PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
+		return PanMarker;
+	}
+	if (CConfig::LCDColumns == 20) {
+		string PanMarker = "........:........";
+		PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
+		return PanMarker;
+	}
+	return "";
 }
 
 string CUIMenu::ToMIDIChannel (int nValue)
