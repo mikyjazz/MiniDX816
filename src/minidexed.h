@@ -44,6 +44,9 @@
 #include "effect_platervbstereo.h"
 #include "effect_compressor.h"
 
+#define MAX_MASTER_VOLUME 127
+#define STEP_MASTER_VOLUME 8
+
 class CMiniDexed
 #ifdef ARM_ALLOW_MULTI_CORE
 :	public CMultiCoreSupport
@@ -73,9 +76,9 @@ public:
 	void ProgramChange (unsigned nProgram, unsigned nTG);
 	void ProgramChangePerformance (unsigned nProgram);
 	void SetVolume (unsigned nVolume, unsigned nTG);
-	void SetPan (unsigned nPan, unsigned nTG);			// 0 .. 127
+	void SetPan (unsigned nPan, unsigned nTG);				// 0 .. 127
 	void SetMasterTune (int nMasterTune, unsigned nTG);		// -99 .. 99
-	void SetCutoff (int nCutoff, unsigned nTG);			// 0 .. 99
+	void SetCutoff (int nCutoff, unsigned nTG);				// 0 .. 99
 	void SetResonance (int nResonance, unsigned nTG);		// 0 .. 99
 	void SetMIDIChannel (uint8_t uchChannel, unsigned nTG);
 
@@ -93,7 +96,7 @@ public:
 	void setBreathController (uint8_t value, unsigned nTG);
 	void setAftertouch (uint8_t value, unsigned nTG);
 
-	void SetReverbSend (unsigned nReverbSend, unsigned nTG);			// 0 .. 127
+	void SetReverbSend (unsigned nReverbSend, unsigned nTG);// 0 .. 127
 
 	void setMonoMode(uint8_t mono, uint8_t nTG);
 	void setPitchbendRange(uint8_t range, uint8_t nTG);

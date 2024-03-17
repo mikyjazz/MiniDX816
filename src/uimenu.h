@@ -49,6 +49,7 @@ public:
 		MenuEventPgmDown,
 		MenuEventTGUp,
 		MenuEventTGDown,
+		MenuEventCancelTimedFeature,
 		MenuEventUnknown
 	};
 
@@ -80,6 +81,7 @@ private:
 
 private:
 	static void MenuHandler (CUIMenu *pUIMenu, TMenuEvent Event);
+	static void MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void EditGlobalParameter (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void SelectVoiceBank (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void SelectVoice (CUIMenu *pUIMenu, TMenuEvent Event);
@@ -124,7 +126,8 @@ private:
 
 	static void InputTxt (CUIMenu *pUIMenu, TMenuEvent Event);
 	static void TimerHandlerNoBack (TKernelTimerHandle hTimer, void *pParam, void *pContext);
-	 
+    static void TimerHandlerCancelTimed (TKernelTimerHandle hTimer, void *pParam, void *pContext);
+	
 private:
 	CUserInterface *m_pUI;
 	CMiniDexed *m_pMiniDexed;
@@ -171,8 +174,11 @@ private:
 	bool m_bConfirmDeletePerformance=false;
 	unsigned m_nSelectedPerformanceID = 9999;
 	unsigned m_nSelectedPerformanceBankID = 9999;
+	unsigned m_nSelectedTG = 9999;
 	bool m_bSplashShow=false;
-
+	bool m_bSetMainVolume=true;
+	bool m_bShowSetMainVolume=false;
+	TKernelTimerHandle m_hMainMenuTimer=0;
 };
 
 #endif

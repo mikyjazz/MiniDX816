@@ -57,7 +57,8 @@ bool CUserInterface::Initialize (void)
 	{
 		unsigned i2caddr = m_pConfig->GetLCDI2CAddress ();
 		unsigned ssd1306addr = m_pConfig->GetSSD1306LCDI2CAddress ();
-		if (ssd1306addr != 0) {
+		if (ssd1306addr != 0) 
+		{
 			m_pSSD1306 = new CSSD1306Device (m_pConfig->GetSSD1306LCDWidth (), m_pConfig->GetSSD1306LCDHeight (),
 											 m_pI2CMaster, ssd1306addr,
 											 m_pConfig->GetSSD1306LCDRotate (), m_pConfig->GetSSD1306LCDMirror ());
@@ -293,7 +294,7 @@ void CUserInterface::EncoderEventHandler (CKY040::TEvent Event)
 		break;
 
 	case CKY040::EventSwitchHold:
-		if (m_pRotaryEncoder->GetHoldSeconds () >= 120)
+		if (m_pRotaryEncoder->GetHoldSeconds () >= 60)
 		{
 			delete m_pLCD;		// reset LCD
 
@@ -394,7 +395,7 @@ void CUserInterface::UISetMIDIButtonChannel (unsigned uCh)
 		m_nMIDIButtonCh = CMIDIDevice::Disabled;
 		LOGNOTE("MIDI Button channel not set");
 	}
-	else if (uCh < CMIDIDevice::Channels)
+	else if (uCh <= CMIDIDevice::Channels)
 	{
 		m_nMIDIButtonCh = uCh - 1;
 		LOGNOTE("MIDI Button channel set to: %d", m_nMIDIButtonCh);

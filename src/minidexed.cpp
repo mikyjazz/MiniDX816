@@ -803,74 +803,74 @@ void CMiniDexed::SetParameter (TParameter Parameter, int nValue)
 
 	switch (Parameter)
 	{
-	case ParameterCompressorEnable:
-		for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
-		{
-			assert (m_pTG[nTG]);
-			m_pTG[nTG]->setCompressor (!!nValue);
-		}
-		break;
+		case ParameterCompressorEnable:
+			for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
+			{
+				assert (m_pTG[nTG]);
+				m_pTG[nTG]->setCompressor (!!nValue);
+			}
+			break;
 
-	case ParameterReverbEnable:
-		nValue=constrain((int)nValue,0,1);
-		m_ReverbSpinLock.Acquire ();
-		reverb->set_bypass (!nValue);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbEnable:
+			nValue=constrain((int)nValue,0,1);
+			m_ReverbSpinLock.Acquire ();
+			reverb->set_bypass (!nValue);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbSize:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->size (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbSize:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->size (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbHighDamp:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->hidamp (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbHighDamp:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->hidamp (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbLowDamp:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->lodamp (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbLowDamp:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->lodamp (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbLowPass:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->lowpass (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbLowPass:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->lowpass (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbDiffusion:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->diffusion (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbDiffusion:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->diffusion (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterReverbLevel:
-		nValue=constrain((int)nValue,0,99);
-		m_ReverbSpinLock.Acquire ();
-		reverb->level (nValue / 99.0f);
-		m_ReverbSpinLock.Release ();
-		break;
+		case ParameterReverbLevel:
+			nValue=constrain((int)nValue,0,99);
+			m_ReverbSpinLock.Acquire ();
+			reverb->level (nValue / 99.0f);
+			m_ReverbSpinLock.Release ();
+			break;
 
-	case ParameterPerformanceSelectChannel:
-		// Nothing more to do
-		break;
+		case ParameterPerformanceSelectChannel:
+			// Nothing more to do
+			break;
 
-	case ParameterPerformanceBank:
-		BankSelectPerformance(nValue);
-		break;
+		case ParameterPerformanceBank:
+			BankSelectPerformance(nValue);
+			break;
 
-	default:
-		assert (0);
-		break;
+		default:
+			assert (0);
+			break;
 	}
 }
 
@@ -886,52 +886,52 @@ void CMiniDexed::SetTGParameter (TTGParameter Parameter, int nValue, unsigned nT
 
 	switch (Parameter)
 	{
-	case TGParameterVoiceBank:	BankSelect (nValue, nTG);	break;
-	case TGParameterVoiceBankMSB:	BankSelectMSB (nValue, nTG);	break;
-	case TGParameterVoiceBankLSB:	BankSelectLSB (nValue, nTG);	break;
-	case TGParameterVoice:	ProgramChange (nValue, nTG);	break;
-	case TGParameterVolume:		SetVolume (nValue, nTG);	break;
-	case TGParameterPan:		SetPan (nValue, nTG);		break;
-	case TGParameterMasterTune:	SetMasterTune (nValue, nTG);	break;
-	case TGParameterCutoff:		SetCutoff (nValue, nTG);	break;
-	case TGParameterResonance:	SetResonance (nValue, nTG);	break;
-	case TGParameterPitchBendRange:	setPitchbendRange (nValue, nTG);	break;
-	case TGParameterPitchBendStep:	setPitchbendStep (nValue, nTG);	break;
-	case TGParameterPortamentoMode:		setPortamentoMode (nValue, nTG);	break;
-	case TGParameterPortamentoGlissando:	setPortamentoGlissando (nValue, nTG);	break;
-	case TGParameterPortamentoTime:		setPortamentoTime (nValue, nTG);	break;
-	case TGParameterMonoMode:		setMonoMode (nValue , nTG);	break; 
-	
-	case TGParameterMWRange:					setModController(0, 0, nValue, nTG); break;
-	case TGParameterMWPitch:					setModController(0, 1, nValue, nTG); break;
-	case TGParameterMWAmplitude:				setModController(0, 2, nValue, nTG); break;
-	case TGParameterMWEGBias:					setModController(0, 3, nValue, nTG); break;
-	
-	case TGParameterFCRange:					setModController(1, 0, nValue, nTG); break;
-	case TGParameterFCPitch:					setModController(1, 1, nValue, nTG); break;
-	case TGParameterFCAmplitude:				setModController(1, 2, nValue, nTG); break;
-	case TGParameterFCEGBias:					setModController(1, 3, nValue, nTG); break;
-	
-	case TGParameterBCRange:					setModController(2, 0, nValue, nTG); break;
-	case TGParameterBCPitch:					setModController(2, 1, nValue, nTG); break;
-	case TGParameterBCAmplitude:				setModController(2, 2, nValue, nTG); break;
-	case TGParameterBCEGBias:					setModController(2, 3, nValue, nTG); break;
-	
-	case TGParameterATRange:					setModController(3, 0, nValue, nTG); break;
-	case TGParameterATPitch:					setModController(3, 1, nValue, nTG); break;
-	case TGParameterATAmplitude:				setModController(3, 2, nValue, nTG); break;
-	case TGParameterATEGBias:					setModController(3, 3, nValue, nTG); break;
-	
-	case TGParameterMIDIChannel:
-		assert (0 <= nValue && nValue <= 255);
-		SetMIDIChannel ((uint8_t) nValue, nTG);
-		break;
+		case TGParameterVoiceBank:				BankSelect (nValue, nTG);				break;
+		case TGParameterVoiceBankMSB:			BankSelectMSB (nValue, nTG);			break;
+		case TGParameterVoiceBankLSB:			BankSelectLSB (nValue, nTG);			break;
+		case TGParameterVoice:					ProgramChange (nValue, nTG);			break;
+		case TGParameterVolume:					SetVolume (nValue, nTG);				break;
+		case TGParameterPan:					SetPan (nValue, nTG);					break;
+		case TGParameterMasterTune:				SetMasterTune (nValue, nTG);			break;
+		case TGParameterCutoff:					SetCutoff (nValue, nTG);				break;
+		case TGParameterResonance:				SetResonance (nValue, nTG);				break;
+		case TGParameterPitchBendRange:			setPitchbendRange (nValue, nTG);		break;
+		case TGParameterPitchBendStep:			setPitchbendStep (nValue, nTG);			break;
+		case TGParameterPortamentoMode:			setPortamentoMode (nValue, nTG);		break;
+		case TGParameterPortamentoGlissando:	setPortamentoGlissando (nValue, nTG);	break;
+		case TGParameterPortamentoTime:			setPortamentoTime (nValue, nTG);		break;
+		case TGParameterMonoMode:				setMonoMode (nValue , nTG);				break; 
+		
+		case TGParameterMWRange:				setModController(0, 0, nValue, nTG);	break;
+		case TGParameterMWPitch:				setModController(0, 1, nValue, nTG); 	break;
+		case TGParameterMWAmplitude:			setModController(0, 2, nValue, nTG); 	break;
+		case TGParameterMWEGBias:				setModController(0, 3, nValue, nTG); 	break;
+		
+		case TGParameterFCRange:				setModController(1, 0, nValue, nTG); 	break;
+		case TGParameterFCPitch:				setModController(1, 1, nValue, nTG); 	break;
+		case TGParameterFCAmplitude:			setModController(1, 2, nValue, nTG); 	break;
+		case TGParameterFCEGBias:				setModController(1, 3, nValue, nTG); 	break;
+		
+		case TGParameterBCRange:				setModController(2, 0, nValue, nTG); 	break;
+		case TGParameterBCPitch:				setModController(2, 1, nValue, nTG); 	break;
+		case TGParameterBCAmplitude:			setModController(2, 2, nValue, nTG); 	break;
+		case TGParameterBCEGBias:				setModController(2, 3, nValue, nTG); 	break;
+		
+		case TGParameterATRange:				setModController(3, 0, nValue, nTG); 	break;
+		case TGParameterATPitch:				setModController(3, 1, nValue, nTG);	break;
+		case TGParameterATAmplitude:			setModController(3, 2, nValue, nTG);	break;
+		case TGParameterATEGBias:				setModController(3, 3, nValue, nTG);	break;
+		
+		case TGParameterMIDIChannel:
+			assert (0 <= nValue && nValue <= 255);
+			SetMIDIChannel ((uint8_t) nValue, nTG);
+			break;
 
-	case TGParameterReverbSend:	SetReverbSend (nValue, nTG);	break;
+		case TGParameterReverbSend:				SetReverbSend (nValue, nTG);			break;		
 
-	default:
-		assert (0);
-		break;
+		default:
+			assert (0);
+			break;
 	}
 }
 
@@ -941,48 +941,47 @@ int CMiniDexed::GetTGParameter (TTGParameter Parameter, unsigned nTG)
 
 	switch (Parameter)
 	{
-	case TGParameterVoiceBank:	return m_nVoiceBankID[nTG];
-	case TGParameterVoiceBankMSB:	return m_nVoiceBankID[nTG] >> 7;
-	case TGParameterVoiceBankLSB:	return m_nVoiceBankID[nTG] & 0x7F;
-	case TGParameterVoice:	return m_nVoice[nTG];
-	case TGParameterVolume:		return m_nVolume[nTG];
-	case TGParameterPan:		return m_nPan[nTG];
-	case TGParameterMasterTune:	return m_nMasterTune[nTG];
-	case TGParameterCutoff:		return m_nCutoff[nTG];
-	case TGParameterResonance:	return m_nResonance[nTG];
-	case TGParameterMIDIChannel:	return m_nMIDIChannel[nTG];
-	case TGParameterReverbSend:	return m_nReverbSend[nTG];
-	case TGParameterPitchBendRange:	return m_nPitchBendRange[nTG];
-	case TGParameterPitchBendStep:	return m_nPitchBendStep[nTG];
-	case TGParameterPortamentoMode:		return m_nPortamentoMode[nTG];
-	case TGParameterPortamentoGlissando:	return m_nPortamentoGlissando[nTG];
-	case TGParameterPortamentoTime:		return m_nPortamentoTime[nTG];
-	case TGParameterMonoMode:		return m_bMonoMode[nTG] ? 1 : 0; 
-	
-	case TGParameterMWRange:					return getModController(0, 0, nTG);
-	case TGParameterMWPitch:					return getModController(0, 1, nTG);
-	case TGParameterMWAmplitude:				return getModController(0, 2, nTG); 
-	case TGParameterMWEGBias:					return getModController(0, 3, nTG); 
-	
-	case TGParameterFCRange:					return getModController(1, 0,  nTG); 
-	case TGParameterFCPitch:					return getModController(1, 1,  nTG); 
-	case TGParameterFCAmplitude:				return getModController(1, 2,  nTG); 
-	case TGParameterFCEGBias:					return getModController(1, 3,  nTG); 
-	
-	case TGParameterBCRange:					return getModController(2, 0,  nTG); 
-	case TGParameterBCPitch:					return getModController(2, 1,  nTG); 
-	case TGParameterBCAmplitude:				return getModController(2, 2,  nTG); 
-	case TGParameterBCEGBias:					return getModController(2, 3,  nTG); 
-	
-	case TGParameterATRange:					return getModController(3, 0,  nTG); 
-	case TGParameterATPitch:					return getModController(3, 1,  nTG); 
-	case TGParameterATAmplitude:				return getModController(3, 2,  nTG); 
-	case TGParameterATEGBias:					return getModController(3, 3,  nTG); 
-	
-	
-	default:
-		assert (0);
-		return 0;
+		case TGParameterVoiceBank:				return m_nVoiceBankID[nTG];
+		case TGParameterVoiceBankMSB:			return m_nVoiceBankID[nTG] >> 7;
+		case TGParameterVoiceBankLSB:			return m_nVoiceBankID[nTG] & 0x7F;
+		case TGParameterVoice:					return m_nVoice[nTG];
+		case TGParameterVolume:					return m_nVolume[nTG];
+		case TGParameterPan:					return m_nPan[nTG];
+		case TGParameterMasterTune:				return m_nMasterTune[nTG];
+		case TGParameterCutoff:					return m_nCutoff[nTG];
+		case TGParameterResonance:				return m_nResonance[nTG];
+		case TGParameterMIDIChannel:			return m_nMIDIChannel[nTG];
+		case TGParameterReverbSend:				return m_nReverbSend[nTG];
+		case TGParameterPitchBendRange:			return m_nPitchBendRange[nTG];
+		case TGParameterPitchBendStep:			return m_nPitchBendStep[nTG];
+		case TGParameterPortamentoMode:			return m_nPortamentoMode[nTG];
+		case TGParameterPortamentoGlissando:	return m_nPortamentoGlissando[nTG];
+		case TGParameterPortamentoTime:			return m_nPortamentoTime[nTG];
+		case TGParameterMonoMode:				return m_bMonoMode[nTG] ? 1 : 0; 
+		
+		case TGParameterMWRange:				return getModController(0, 0, nTG);
+		case TGParameterMWPitch:				return getModController(0, 1, nTG);
+		case TGParameterMWAmplitude:			return getModController(0, 2, nTG); 
+		case TGParameterMWEGBias:				return getModController(0, 3, nTG); 
+		
+		case TGParameterFCRange:				return getModController(1, 0,  nTG); 
+		case TGParameterFCPitch:				return getModController(1, 1,  nTG); 
+		case TGParameterFCAmplitude:			return getModController(1, 2,  nTG); 
+		case TGParameterFCEGBias:				return getModController(1, 3,  nTG); 
+		
+		case TGParameterBCRange:				return getModController(2, 0,  nTG); 
+		case TGParameterBCPitch:				return getModController(2, 1,  nTG); 
+		case TGParameterBCAmplitude:			return getModController(2, 2,  nTG); 
+		case TGParameterBCEGBias:				return getModController(2, 3,  nTG); 
+		
+		case TGParameterATRange:				return getModController(3, 0,  nTG); 
+		case TGParameterATPitch:				return getModController(3, 1,  nTG); 
+		case TGParameterATAmplitude:			return getModController(3, 2,  nTG); 
+		case TGParameterATEGBias:				return getModController(3, 3,  nTG); 
+		
+		default:
+			assert (0);
+			return 0;
 	}
 }
 
@@ -1553,7 +1552,7 @@ void CMiniDexed::getSysExVoiceDump(uint8_t* dest, uint8_t nTG)
 
 void CMiniDexed::SetMasterVolume (unsigned vol)
 {
-	assert(vol < 128);
+	assert(vol <= MAX_MASTER_VOLUME);
 	m_pConfig->SetSessionMasterVolume(vol);
 }
 
@@ -1564,7 +1563,7 @@ unsigned CMiniDexed::GetMasterVolume ()
 
 float32_t CMiniDexed::GetMasterVolumeF ()
 {
-	float32_t vol = m_pConfig->GetSessionMasterVolume()/ 127.0f;
+	float32_t vol = m_pConfig->GetSessionMasterVolume()/ (float32_t)MAX_MASTER_VOLUME;
 	if (vol < 0.0)
 		vol = 0.0;
 	else if (vol > 1.0)
