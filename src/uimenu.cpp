@@ -1527,7 +1527,7 @@ void CUIMenu::TGUpDownHandler (TMenuEvent Event)
 	// then find the current TG number. Otherwise assume TG1 (nTG=0).
 	if (m_MenuStackMenu[0] == s_MainMenu && (m_pCurrentMenu == s_TGMenu) || (m_MenuStackMenu[1] == s_TGMenu)) 
 	{
-		nTG = m_nMenuStackSelection[0];
+		nTG = m_nMenuStackSelection[0] - 2;
 	}
 
 	assert (nTG < CConfig::ToneGenerators);
@@ -1555,7 +1555,7 @@ void CUIMenu::TGUpDownHandler (TMenuEvent Event)
 	//  Menu [1] = TG Menu
 	m_pParentMenu = s_MainMenu;
 	m_pCurrentMenu = s_TGMenu;
-	m_nCurrentMenuItem = nTG;
+	m_nCurrentMenuItem = nTG + 2;
 	m_nCurrentSelection = 0;
 	m_nCurrentParameter = nTG;
 	m_nCurrentMenuDepth = 1;
@@ -1564,7 +1564,7 @@ void CUIMenu::TGUpDownHandler (TMenuEvent Event)
 	m_MenuStackParent[0] = s_MenuRoot;
 	m_MenuStackMenu[0] = s_MainMenu;
 	m_nMenuStackItem[0] = 0;
-	m_nMenuStackSelection[0] = nTG;
+	m_nMenuStackSelection[0] = nTG + 2;
 	m_nMenuStackParameter[0] = 0;
 
 	EventHandler (MenuEventUpdate);
