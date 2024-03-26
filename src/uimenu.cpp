@@ -41,6 +41,8 @@ const CUIMenu::TMenuItem CUIMenu::s_MenuRoot[] =
 // inserting menu items before "TG1" affect TGShortcutHandler()
 const CUIMenu::TMenuItem CUIMenu::s_MainMenu[] =
 {
+	{"Performance",	MenuHandler,s_PerformanceMenu}, 
+	{"Effects",	MenuHandler,	s_EffectsMenu},
 	{"TG1",		MenuHandler,	s_TGMenu, 0},
 #ifdef ARM_ALLOW_MULTI_CORE
 	{"TG2",		MenuHandler,	s_TGMenu, 1},
@@ -51,8 +53,6 @@ const CUIMenu::TMenuItem CUIMenu::s_MainMenu[] =
 	{"TG7",		MenuHandler,	s_TGMenu, 6},
 	{"TG8",		MenuHandler,	s_TGMenu, 7},
 #endif
-	{"Effects",	MenuHandler,	s_EffectsMenu},
-	{"Performance",	MenuHandler, s_PerformanceMenu}, 
 	{0}
 };
 
@@ -62,7 +62,7 @@ const CUIMenu::TMenuItem CUIMenu::s_TGMenu[] =
 	{"Bank",		SelectVoiceBank},
 	{"Volume",		EditTGParameter,	0,	CMiniDexed::TGParameterVolume},
 #ifdef ARM_ALLOW_MULTI_CORE
-	{"Pan",		EditTGParameter,	0,	CMiniDexed::TGParameterPan},
+	{"Pan",		EditTGParameter,		0,	CMiniDexed::TGParameterPan},
 #endif
 	{"Reverb-Send",	EditTGParameter,	0,	CMiniDexed::TGParameterReverbSend},
 	{"Detune",		EditTGParameter,	0,	CMiniDexed::TGParameterMasterTune},
@@ -324,10 +324,10 @@ static const unsigned NoteC3 = 39;
 
 const CUIMenu::TMenuItem CUIMenu::s_PerformanceMenu[] =
 {
-	{"Load",	SelectPerformance, 0, 0}, 
-	{"Bank",	SelectPerformanceBank, 0, 0},	
-	{"Save",	MenuHandler, s_SaveMenu},
-	{"Delete",	SelectPerformance, 0, 1},
+	{"Perf Load",	SelectPerformance, 0, 0}, 
+	{"Perf Bank",	SelectPerformanceBank, 0, 0},	
+	{"Perf Save",	MenuHandler, s_SaveMenu},
+	{"Perf Delete",	SelectPerformance, 0, 1},
 	{"PCCH",	EditGlobalParameter, 0,	CMiniDexed::ParameterPerformanceSelectChannel},
 	{0}
 };
@@ -558,6 +558,29 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 				pUIMenu->m_bSetMainVolume = true;
 			}
 			break;
+
+		case MenuEventModeMidi:
+			{
+				CMiniDexed::TGMidiMode midiMode = pUIMenu->m_pMiniDexed->GetGlobalMidiMode();
+				switch (midiMode)
+				{
+					case CMiniDexed::TGMidiMode::MidiModeNormal:
+						pUIMenu->m_pMiniDexed->SetGlobalMidiMode(CMiniDexed::TGMidiMode::MidiMode1Only);
+						break;
+					case CMiniDexed::TGMidiMode::MidiMode1Only:
+						pUIMenu->m_pMiniDexed->SetGlobalMidiMode(CMiniDexed::TGMidiMode::MidiMode1All);
+						break;
+					case CMiniDexed::TGMidiMode::MidiMode1All:
+						pUIMenu->m_pMiniDexed->SetGlobalMidiMode(CMiniDexed::TGMidiMode::MidiModeOmni);
+						break;
+					case CMiniDexed::TGMidiMode::MidiModeOmni:
+						pUIMenu->m_pMiniDexed->SetGlobalMidiMode(CMiniDexed::TGMidiMode::MidiModeNormal);
+						break;
+					default:
+						break;
+				}
+			}
+			break;			
 		default:
 			return;
 	}
@@ -576,7 +599,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 		{
 			pUIMenu->m_pUI->DisplayWrite (
 				pUIMenu->m_pParentMenu[pUIMenu->m_nCurrentMenuItem].Name,
-				"",
+				pUIMenu->m_pMiniDexed->GetGlobalMidiModeString().c_str(),
 				pUIMenu->m_pMiniDexed->GetPerformanceName(pUIMenu->m_pMiniDexed->GetPerformanceID()).c_str(),
 				false,
 				false);
@@ -589,7 +612,7 @@ void CUIMenu::MainMenuHandler (CUIMenu *pUIMenu, TMenuEvent Event)
 		{
 			pUIMenu->m_pUI->DisplayWrite (
 				pUIMenu->m_pParentMenu[pUIMenu->m_nCurrentMenuItem].Name,
-				"",
+				pUIMenu->m_pMiniDexed->GetGlobalMidiModeString().c_str(),
 				pUIMenu->m_pCurrentMenu[pUIMenu->m_nCurrentSelection].Name,
 				pUIMenu->m_nCurrentSelection > 0,
 				!!pUIMenu->m_pCurrentMenu[pUIMenu->m_nCurrentSelection+1].Name);
@@ -1188,31 +1211,25 @@ string CUIMenu::GetOPValueString (unsigned nOPParameter, int nValue)
 
 string CUIMenu::ToVolume (int nValue)
 {
-	static unsigned MaxChars = CConfig::LCDColumns-2;
-	unsigned nIndex = nValue * MaxChars / 127;
+	unsigned nIndex = nValue * (CConfig::LCDColumns-2) / 127;
 	string VolumeBar(nIndex, '\xFF');
 	return VolumeBar;
 }
 
 string CUIMenu::ToPan (int nValue)
 {
+	assert(CConfig::LCDColumns > 7);
 	static unsigned MaxChars = CConfig::LCDColumns-3;
-	unsigned nIndex = nValue * MaxChars / 127;
+	unsigned nIndex = nValue * MaxChars / 127;	
 	if (nIndex == MaxChars)
 	{
 		nIndex--;
 	}
-	if (CConfig::LCDColumns == 16) {
-		string PanMarker = "......:......";
-		PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
-		return PanMarker;
-	}
-	if (CConfig::LCDColumns == 20) {
-		string PanMarker = "........:........";
-		PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
-		return PanMarker;
-	}
-	return "";
+	string PanMarker((CConfig::LCDColumns-4)/2, '.');
+	PanMarker += ':';
+	PanMarker += string((CConfig::LCDColumns-4)/2, '.');
+	PanMarker[nIndex] = '\xFF';			// 0xFF is the block character
+	return PanMarker;
 }
 
 string CUIMenu::ToMIDIChannel (int nValue)

@@ -35,7 +35,7 @@ public:
 	static const unsigned ToneGenerators = 1;
 #else
 	static const unsigned TGsCore1 = 2;		// process 2 TGs on core 1
-	static const unsigned TGsCore23 = 3;		// process 3 TGs on core 2 and 3 each
+	static const unsigned TGsCore23 = 3;	// process 3 TGs on core 2 and 3 each
 	static const unsigned ToneGenerators = TGsCore1 + 2*TGsCore23;
 #endif
 
@@ -83,7 +83,7 @@ public:
     unsigned GetMIDIOutTg(void) const;          // TG number to out, 0  default for none
 	bool GetMIDIRXProgramChange (void) const;   // true if not specified
 	bool GetIgnoreAllNotesOff (void) const;
-	bool GetMIDIAutoVoiceDumpOnPC (void) const; // true if not specified
+	bool GetMIDIAutoVoiceDumpOnPC (void) const; // false if not specified
 	bool GetHeaderlessSysExVoices (void) const; // false if not specified
 	bool GetExpandPCAcrossBanks (void) const;   // true if not specified
 
@@ -118,13 +118,17 @@ public:
 	unsigned GetButtonPinHome (void) const;
 	unsigned GetButtonPinShortcut (void) const;
 
+	unsigned GetButtonPinModeMidi (void) const;
+
 	// Action type for buttons: "click", "doubleclick", "longpress", ""
 	const char *GetButtonActionPrev (void) const;
 	const char *GetButtonActionNext (void) const;
 	const char *GetButtonActionBack (void) const;
 	const char *GetButtonActionSelect (void) const;
 	const char *GetButtonActionHome (void) const;
-	
+
+	const char *GetButtonActionModeMidi (void) const;
+
 	// Timeouts for button events in milliseconds
 	unsigned GetDoubleClickTimeout (void) const;
 	unsigned GetLongPressTimeout (void) const;
@@ -150,6 +154,9 @@ public:
 	unsigned GetMIDIButtonBack (void) const;
 	unsigned GetMIDIButtonSelect (void) const;
 	unsigned GetMIDIButtonHome (void) const;
+
+	// MIDI Button Commands
+	unsigned GetMIDIButtonModeMidi (void) const;
 
 	// MIDI Button Program and TG Selection
 	unsigned GetMIDIButtonPgmUp (void) const;
@@ -230,6 +237,7 @@ private:
 	unsigned m_nButtonPinSelect;
 	unsigned m_nButtonPinHome;
 	unsigned m_nButtonPinShortcut;
+	unsigned m_nButtonPinModeMidi;
 	unsigned m_nButtonPinPgmUp;
 	unsigned m_nButtonPinPgmDown;
 	unsigned m_nButtonPinTGUp;
@@ -240,6 +248,7 @@ private:
 	std::string m_ButtonActionBack;
 	std::string m_ButtonActionSelect;
 	std::string m_ButtonActionHome;
+	std::string m_ButtonActionModeMidi;
 	std::string m_ButtonActionPgmUp;
 	std::string m_ButtonActionPgmDown;
 	std::string m_ButtonActionTGUp;
@@ -255,6 +264,7 @@ private:
 	unsigned m_nMIDIButtonBack;
 	unsigned m_nMIDIButtonSelect;
 	unsigned m_nMIDIButtonHome;
+	unsigned m_nMIDIButtonModeMidi;
 	unsigned m_nMIDIButtonPgmUp;
 	unsigned m_nMIDIButtonPgmDown;
 	unsigned m_nMIDIButtonTGUp;

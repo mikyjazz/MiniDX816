@@ -120,6 +120,9 @@ bool CUserInterface::Initialize (void)
 									m_pConfig->GetButtonPinHome (),
 									m_pConfig->GetButtonActionHome (),
 
+									m_pConfig->GetButtonPinModeMidi (),
+									m_pConfig->GetButtonActionModeMidi (),
+
 									m_pConfig->GetButtonPinPgmUp (),
 									m_pConfig->GetButtonActionPgmUp (),
 									m_pConfig->GetButtonPinPgmDown (),
@@ -138,6 +141,9 @@ bool CUserInterface::Initialize (void)
 									m_pConfig->GetMIDIButtonBack (),
 									m_pConfig->GetMIDIButtonSelect (),
 									m_pConfig->GetMIDIButtonHome (),
+
+									m_pConfig->GetMIDIButtonModeMidi (),
+
 									m_pConfig->GetMIDIButtonPgmUp (),
 									m_pConfig->GetMIDIButtonPgmDown (),
 									m_pConfig->GetMIDIButtonTGUp (),
@@ -339,6 +345,10 @@ void CUserInterface::UIButtonsEventHandler (CUIButton::BtnEvent Event)
 		m_Menu.EventHandler (CUIMenu::MenuEventHome);
 		break;
 
+	case CUIButton::BtnEventModeMidi:
+		m_Menu.EventHandler (CUIMenu::MenuEventModeMidi);
+		break;
+
 	case CUIButton::BtnEventPgmUp:
 		m_Menu.EventHandler (CUIMenu::MenuEventPgmUp);
 		break;
@@ -398,7 +408,7 @@ void CUserInterface::UISetMIDIButtonChannel (unsigned uCh)
 	else if (uCh <= CMIDIDevice::Channels)
 	{
 		m_nMIDIButtonCh = uCh - 1;
-		LOGNOTE("MIDI Button channel set to: %d", m_nMIDIButtonCh);
+		LOGNOTE("MIDI Button channel set to: %d", m_nMIDIButtonCh+1);
 	}
 	else
 	{

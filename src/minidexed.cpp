@@ -57,7 +57,8 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	m_bDeletePerformance (false),
 	m_bLoadPerformanceBusy(false),
 	m_bLoadPerformanceBankBusy(false),
-	m_bLoadInitialSettings(false)
+	m_bLoadInitialSettings(false),
+	m_pMidiMode(TGMidiMode::MidiModeNormal)
 {
 	assert (m_pConfig);
 
@@ -72,6 +73,7 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 		m_nCutoff[i] = 99;
 		m_nResonance[i] = 0;
 		m_nMIDIChannel[i] = CMIDIDevice::Disabled;
+		m_nMIDIChannelPf[i] = CMIDIDevice::Disabled;
 		m_nPitchBendRange[i] = 2;
 		m_nPitchBendStep[i] = 0;
 		m_nPortamentoMode[i] = 0;
@@ -643,12 +645,16 @@ void CMiniDexed::SetResonance (int nResonance, unsigned nTG)
 
 
 
-void CMiniDexed::SetMIDIChannel (uint8_t uchChannel, unsigned nTG)
+void CMiniDexed::SetMIDIChannel (uint8_t uchChannel, unsigned nTG, bool backup)
 {
 	assert (nTG < CConfig::ToneGenerators);
 	assert (uchChannel < CMIDIDevice::ChannelUnknown);
 
-	m_nMIDIChannel[nTG] = uchChannel;
+	m_nMIDIChannel[nTG] = uchChannel;	
+	if (backup)
+	{
+		m_nMIDIChannelPf[nTG] = uchChannel;
+	}
 
 	for (unsigned i = 0; i < CConfig::MaxUSBMIDIDevices; i++)
 	{
@@ -1705,6 +1711,72 @@ bool CMiniDexed::DoSavePerformanceNewFile (void)
 	}
 	
 }
+
+CMiniDexed::TGMidiMode CMiniDexed::GetGlobalMidiMode(void)
+{
+	return m_pMidiMode;
+}
+
+std::string CMiniDexed::GetGlobalMidiModeString(void)
+{
+	switch (m_pMidiMode)
+	{
+		case CMiniDexed::TGMidiMode::MidiModeNormal:
+			return "N";
+		case CMiniDexed::TGMidiMode::MidiMode1Only:
+			return "1";
+		case CMiniDexed::TGMidiMode::MidiMode1All:
+			return "A";
+		case CMiniDexed::TGMidiMode::MidiModeOmni:
+			return "O";
+		default:
+			return " ";
+	}
+}
+
+void CMiniDexed::SetGlobalMidiMode(TGMidiMode mode)
+{
+	if (mode != m_pMidiMode)
+	{
+		unsigned midiCh0 = m_nMIDIChannelPf[0];
+		for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
+		{
+			switch (mode)
+			{
+				case TGMidiMode::MidiModeNormal:
+					if (m_nMIDIChannelPf[nTG] != m_nMIDIChannel[nTG])  
+					{
+						SetMIDIChannel(m_nMIDIChannelPf[nTG], nTG, false);
+					}
+					break;
+				case TGMidiMode::MidiModeOmni:
+					if (CMIDIDevice::OmniMode != m_nMIDIChannel[nTG])  
+					{
+						SetMIDIChannel(CMIDIDevice::OmniMode, nTG, false);
+					}
+					break;
+				case TGMidiMode::MidiMode1All:
+					if (midiCh0 != m_nMIDIChannel[nTG])  
+					{
+						SetMIDIChannel(midiCh0, nTG, false);
+					}
+					break;
+				case TGMidiMode::MidiMode1Only:
+					if (nTG == 0)  
+					{
+						SetMIDIChannel(midiCh0, nTG, false);
+					}
+					else
+					{
+						SetMIDIChannel(CMIDIDevice::Disabled, nTG, false);
+					}
+					break;
+			}
+		}
+		m_pMidiMode = mode;
+	}
+}
+
 
 void CMiniDexed::LoadPerformanceParameters(void)
 {

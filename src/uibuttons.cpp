@@ -263,12 +263,14 @@ CUIButtons::CUIButtons (
 			unsigned backPin, const char *backAction,
 			unsigned selectPin, const char *selectAction,
 			unsigned homePin, const char *homeAction,
+			unsigned modeMidiPin, const char *modeMidiAction,
 			unsigned pgmUpPin, const char *pgmUpAction,
 			unsigned pgmDownPin, const char *pgmDownAction,
 			unsigned TGUpPin, const char *TGUpAction,
 			unsigned TGDownPin, const char *TGDownAction,
 			unsigned doubleClickTimeout, unsigned longPressTimeout,
 			unsigned notesMidi, unsigned prevMidi, unsigned nextMidi, unsigned backMidi, unsigned selectMidi, unsigned homeMidi,
+			unsigned modeMidi,
 			unsigned pgmUpMidi, unsigned pgmDownMidi, unsigned TGUpMidi, unsigned TGDownMidi
 )
 :	m_doubleClickTimeout(doubleClickTimeout),
@@ -283,6 +285,10 @@ CUIButtons::CUIButtons (
 	m_selectAction(CUIButton::triggerTypeFromString(selectAction)),
 	m_homePin(homePin),
 	m_homeAction(CUIButton::triggerTypeFromString(homeAction)),
+
+	m_modeMidiPin(modeMidiPin),
+	m_modeMidiAction(CUIButton::triggerTypeFromString(modeMidiAction)),
+
 	m_pgmUpPin(pgmUpPin),
 	m_pgmUpAction(CUIButton::triggerTypeFromString(pgmUpAction)),
 	m_pgmDownPin(pgmDownPin),
@@ -297,6 +303,9 @@ CUIButtons::CUIButtons (
 	m_backMidi(ccToMidiPin(backMidi)),
 	m_selectMidi(ccToMidiPin(selectMidi)),
 	m_homeMidi(ccToMidiPin(homeMidi)),
+
+	m_modeMidi(ccToMidiPin(modeMidi)),
+
 	m_pgmUpMidi(ccToMidiPin(pgmUpMidi)),
 	m_pgmDownMidi(ccToMidiPin(pgmDownMidi)),
 	m_TGUpMidi(ccToMidiPin(TGUpMidi)),
@@ -332,16 +341,18 @@ boolean CUIButtons::Initialize (void)
 	// longpress. We may not initialise all of the buttons.
 	// MIDI buttons only support a single click.
 	unsigned pins[MAX_BUTTONS] = {
-		m_prevPin, m_nextPin, m_backPin, m_selectPin, m_homePin, m_pgmUpPin,  m_pgmDownPin,  m_TGUpPin,  m_TGDownPin, 
-		m_prevMidi, m_nextMidi, m_backMidi, m_selectMidi, m_homeMidi, m_pgmUpMidi, m_pgmDownMidi, m_TGUpMidi, m_TGDownMidi
+		m_prevPin, m_nextPin, m_backPin, m_selectPin, m_homePin, m_modeMidiPin, m_pgmUpPin,  m_pgmDownPin,  m_TGUpPin,  m_TGDownPin, 
+		m_prevMidi, m_nextMidi, m_backMidi, m_selectMidi, m_homeMidi, m_modeMidi, m_pgmUpMidi, m_pgmDownMidi, m_TGUpMidi, m_TGDownMidi
 	};
 	CUIButton::BtnTrigger triggers[MAX_BUTTONS] = {
 		// Normal buttons
 		m_prevAction, m_nextAction, m_backAction, m_selectAction, m_homeAction,
+		m_modeMidiAction,
 		m_pgmUpAction, m_pgmDownAction, m_TGUpAction, m_TGDownAction, 
 		// MIDI Buttons only support a single click (at present)
 		CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick,
-		CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick
+		CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick,
+		CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick, CUIButton::BtnTriggerClick
 	};
 	CUIButton::BtnEvent events[MAX_BUTTONS] = {
 		// Normal buttons
@@ -350,6 +361,7 @@ boolean CUIButtons::Initialize (void)
 		CUIButton::BtnEventBack,
 		CUIButton::BtnEventSelect,
 		CUIButton::BtnEventHome,
+		CUIButton::BtnEventModeMidi,
 		CUIButton::BtnEventPgmUp,
 		CUIButton::BtnEventPgmDown,
 		CUIButton::BtnEventTGUp,
@@ -360,6 +372,7 @@ boolean CUIButtons::Initialize (void)
 		CUIButton::BtnEventBack,
 		CUIButton::BtnEventSelect,
 		CUIButton::BtnEventHome,
+		CUIButton::BtnEventModeMidi,
 		CUIButton::BtnEventPgmUp,
 		CUIButton::BtnEventPgmDown,
 		CUIButton::BtnEventTGUp,

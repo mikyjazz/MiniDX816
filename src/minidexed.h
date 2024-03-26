@@ -81,8 +81,8 @@ public:
 	void SetMasterTune (int nMasterTune, unsigned nTG);		// -99 .. 99
 	void SetCutoff (int nCutoff, unsigned nTG);				// 0 .. 99
 	void SetResonance (int nResonance, unsigned nTG);		// 0 .. 99
-	void SetMIDIChannel (uint8_t uchChannel, unsigned nTG);
-
+	void SetMIDIChannel (uint8_t uchChannel, unsigned nTG, bool backup = true);
+	
 	void keyup (int16_t pitch, unsigned nTG);
 	void keydown (int16_t pitch, uint8_t velocity, unsigned nTG);
 
@@ -232,6 +232,18 @@ public:
 	unsigned GetMasterVolume ();
 	float32_t GetMasterVolumeF ();
 
+	enum TGMidiMode
+	{
+		MidiModeNormal = 0,
+		MidiModeOmni = 1,
+		MidiMode1Only = 2,
+		MidiMode1All = 3
+	};
+
+	void SetGlobalMidiMode(TGMidiMode mode);
+	TGMidiMode GetGlobalMidiMode(void);
+	std::string GetGlobalMidiModeString(void);
+
 private:
 	int16_t ApplyNoteLimits (int16_t pitch, unsigned nTG);	// returns < 0 to ignore note
 	uint8_t m_uchOPMask[CConfig::ToneGenerators];
@@ -267,6 +279,7 @@ private:
 	int m_nCutoff[CConfig::ToneGenerators];
 	int m_nResonance[CConfig::ToneGenerators];
 	unsigned m_nMIDIChannel[CConfig::ToneGenerators];
+	unsigned m_nMIDIChannelPf[CConfig::ToneGenerators];
 	unsigned m_nPitchBendRange[CConfig::ToneGenerators];	
 	unsigned m_nPitchBendStep[CConfig::ToneGenerators];	
 	unsigned m_nPortamentoMode[CConfig::ToneGenerators];	
@@ -333,6 +346,7 @@ private:
 	bool m_bLoadPerformanceBankBusy;
 	bool m_bLoadInitialSettings;
 	bool m_bSaveAsDeault;
+	TGMidiMode m_pMidiMode;
 };
 
 #endif

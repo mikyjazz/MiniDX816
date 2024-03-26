@@ -27,8 +27,8 @@
 
 #define BUTTONS_UPDATE_NUM_TICKS 100
 #define DEBOUNCE_TIME 100
-#define MAX_GPIO_BUTTONS 9  // 5 UI buttons, 4 Program/TG Select buttons
-#define MAX_MIDI_BUTTONS 9
+#define MAX_GPIO_BUTTONS 10  // 5 UI buttons, 1 Command buttons, 4 Program/TG Select buttons
+#define MAX_MIDI_BUTTONS 10
 #define MAX_BUTTONS (MAX_GPIO_BUTTONS+MAX_MIDI_BUTTONS)
 
 class CUIButtons;
@@ -52,11 +52,12 @@ public:
 		BtnEventBack = 3,
 		BtnEventSelect = 4,
 		BtnEventHome = 5,
-		BtnEventPgmUp = 6,
-		BtnEventPgmDown = 7,
-		BtnEventTGUp = 8,
-		BtnEventTGDown = 9,
-		BtnEventUnknown = 10
+		BtnEventModeMidi = 6,
+		BtnEventPgmUp = 7,
+		BtnEventPgmDown = 8,
+		BtnEventTGUp = 9,
+		BtnEventTGDown = 10,
+		BtnEventUnknown = 11
 	};
 	
 	CUIButton (void);
@@ -119,10 +120,12 @@ public:
 			unsigned homePin, const char *homeAction,
 			unsigned pgmUpPin, const char *pgmUpAction,
 			unsigned pgmDownPin, const char *pgmDownAction,
+			unsigned modeMidiPin, const char *modeMidiAction,
 			unsigned TGUpPin, const char *TGUpAction,
 			unsigned TGDownPin, const char *TGDownAction,
 			unsigned doubleClickTimeout, unsigned longPressTimeout,
 			unsigned notesMidi, unsigned prevMidi, unsigned nextMidi, unsigned backMidi, unsigned selectMidi, unsigned homeMidi,
+			unsigned modeMidi,
 			unsigned pgmUpMidi, unsigned pgmDownMidi, unsigned TGUpMidi, unsigned TGDownMidi
 	);
 	~CUIButtons (void);
@@ -157,7 +160,11 @@ private:
 	CUIButton::BtnTrigger m_selectAction;
 	unsigned m_homePin;
 	CUIButton::BtnTrigger m_homeAction;
-	
+
+	// Commands
+	unsigned m_modeMidiPin;
+	CUIButton::BtnTrigger m_modeMidiAction;
+
 	// Program and TG Selection buttons
 	unsigned m_pgmUpPin;
 	CUIButton::BtnTrigger m_pgmUpAction;
@@ -176,6 +183,8 @@ private:
 	unsigned m_selectMidi;
 	unsigned m_homeMidi;
 	
+	unsigned m_modeMidi;
+
 	unsigned m_pgmUpMidi;
 	unsigned m_pgmDownMidi;
 	unsigned m_TGUpMidi;

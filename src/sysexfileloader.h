@@ -40,16 +40,16 @@ public:
 	struct TVoiceBank
 	{
 		uint8_t StatusStart;	// 0xF0
-		uint8_t CompanyID;	// 0x43
-		uint8_t SubStatus;	// 0x00
-		uint8_t Format;		// 0x09
+		uint8_t CompanyID;		// 0x43
+		uint8_t SubStatus;		// 0x00
+		uint8_t Format;			// 0x09
 		uint8_t ByteCountMS;	// 0x20
 		uint8_t ByteCountLS;	// 0x00
 
 		uint8_t Voice[VoicesPerBank][SizePackedVoice];
 
 		uint8_t Checksum;
-		uint8_t StatusEnd;	// 0xF7
+		uint8_t StatusEnd;		// 0xF7
 	}
 	PACKED;
 
@@ -60,14 +60,14 @@ public:
 	void Load (bool bHeaderlessSysExVoices = false);
 
 	std::string GetBankName (unsigned nBankID);	// 0 .. MaxVoiceBankID
-	unsigned GetNumHighestBank (); // 0 .. MaxVoiceBankID
+	unsigned GetNumHighestBank (); 				// 0 .. MaxVoiceBankID
 	bool     IsValidBank (unsigned nBankID);
 	unsigned GetNextBankUp (unsigned nBankID);
 	unsigned GetNextBankDown (unsigned nBankID);
 
 	void GetVoice (unsigned nBankID,		// 0 .. MaxVoiceBankID
-		       unsigned nVoiceID,		// 0 .. 31
-		       uint8_t *pVoiceData);		// returns unpacked format (156 bytes)
+		      	unsigned nVoiceID,			// 0 .. 31
+		       	uint8_t *pVoiceData);		// returns unpacked format (156 bytes)
 
 private:
 	static void DecodePackedVoice (const uint8_t *pPackedData, uint8_t *pDecodedData);

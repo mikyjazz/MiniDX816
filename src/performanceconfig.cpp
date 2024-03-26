@@ -102,7 +102,7 @@ bool CPerformanceConfig::Load (void)
 		PropertyName.Format ("MIDIChannel%u", nTG+1);
 		unsigned nMIDIChannel = m_Properties.GetNumber (PropertyName, 255);
 		if (nMIDIChannel == 0)
-		{
+		{			
 			m_nMIDIChannel[nTG] = CMIDIDevice::Disabled;
 		}
 		else if (nMIDIChannel <= CMIDIDevice::Channels)
@@ -115,6 +115,7 @@ bool CPerformanceConfig::Load (void)
 			m_nMIDIChannel[nTG] = CMIDIDevice::OmniMode;
 			bResult = true;
 		}
+
 
 		PropertyName.Format ("Volume%u", nTG+1);
 		m_nVolume[nTG] = m_Properties.GetNumber (PropertyName, 100);

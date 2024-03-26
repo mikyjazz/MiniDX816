@@ -49,16 +49,16 @@ uint8_t CSysExFileLoader::s_DefaultVoice[SizeSingleVoice] =	// FM-Piano
 uint8_t CSysExFileLoader::s_DefaultVoice[SizeSingleVoice] =	// INIT VOICE
 {
 	99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP6 eg_rate_1-4, level_1-4, kbd_lev_scl_brk_pt, kbd_lev_scl_lft_depth, kbd_lev_scl_rht_depth, kbd_lev_scl_lft_curve, kbd_lev_scl_rht_curve, kbd_rate_scaling, amp_mod_sensitivity, key_vel_sensitivity, operator_output_level, osc_mode, osc_freq_coarse, osc_freq_fine, osc_detune
-        99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP5
-        99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP4
-        99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP3
-        99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP2
-        99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 99, 00, 01, 00, 07, // OP1
-        99, 99, 99, 99, 50, 50, 50, 50,                                                     // 4 * pitch EG rates, 4 * pitch EG level
+    99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP5
+    99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP4
+    99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP3
+    99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 01, 00, 07, // OP2
+    99, 99, 99, 99, 99, 99, 99, 00, 00, 00, 00, 00, 00, 00, 00, 00, 99, 00, 01, 00, 07, // OP1
+    99, 99, 99, 99, 50, 50, 50, 50,                                                     // 4 * pitch EG rates, 4 * pitch EG level
 	00, 00, 01,                                                                         // algorithm, feedback, osc sync
 	35, 00, 00, 00, 01, 00,                                                             // lfo speed, lfo delay, lfo pitch_mod_depth, lfo_amp_mod_depth, lfo_sync, lfo_waveform
 	03, 24,                                                                             // pitch_mod_sensitivity, transpose
-        73, 78, 73, 84, 32, 86, 79, 73, 67, 69                                              // 10 * char for name
+    73, 78, 73, 84, 32, 86, 79, 73, 67, 69                                              // 10 * char for name
 };
 
 CSysExFileLoader::CSysExFileLoader (const char *pDirName)
