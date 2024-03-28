@@ -1174,7 +1174,7 @@ void CMiniDexed::ProcessSound (void)
 	
 				m_ReverbSpinLock.Acquire ();
 	
-       		         	reverb_send_mixer->getMix(ReverbSendBuffer[indexL], ReverbSendBuffer[indexR]);
+       		    reverb_send_mixer->getMix(ReverbSendBuffer[indexL], ReverbSendBuffer[indexR]);
 				reverb->doReverb(ReverbSendBuffer[indexL],ReverbSendBuffer[indexR],ReverbBuffer[indexL], ReverbBuffer[indexR],nFrames);
 	
 				// scale down and add left reverb buffer by reverb level 
@@ -1198,12 +1198,12 @@ void CMiniDexed::ProcessSound (void)
 			// Convert dual float array (left, right) to single int16 array (left/right)
 			for(uint16_t i=0; i<nFrames;i++)
 			{
-				if(nMasterVolume >0.0 && nMasterVolume <1.0)
+				if(nMasterVolume <1.0)
 				{
 					tmp_float[i*2]=SampleBuffer[indexL][i] * nMasterVolume;
 					tmp_float[(i*2)+1]=SampleBuffer[indexR][i] * nMasterVolume;
 				}
-				else if(nMasterVolume == 1.0)
+				else
 				{
 					tmp_float[i*2]=SampleBuffer[indexL][i];
 					tmp_float[(i*2)+1]=SampleBuffer[indexR][i];
