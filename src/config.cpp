@@ -60,6 +60,7 @@ bool CConfig::Load (void)
 	m_SoundDevice = m_Properties.GetString ("SoundDevice", "pwm");
 
 	m_nSampleRate = m_Properties.GetNumber ("SampleRate", 48000);
+	// The CHUNK_SIZE must be a multiple of 2 or a multiple of 384 for HDMI output.
 #ifdef ARM_ALLOW_MULTI_CORE
 	m_nChunkSize = m_Properties.GetNumber ("ChunkSize", m_SoundDevice == "hdmi" ? 384*6 : 256);
 #else
@@ -73,7 +74,7 @@ bool CConfig::Load (void)
   		m_EngineType = MKI;
 	} else if (newEngineType == 3) {
   		m_EngineType = OPL;
-	} else {
+	} else {	// 1
   		m_EngineType = MSFA;
 	}
 

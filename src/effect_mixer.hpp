@@ -19,24 +19,29 @@ template <int NN> class AudioMixer
 {
 public:
 	AudioMixer(uint16_t len)
-	{
+	{		
 		buffer_length=len;
 		for (uint8_t i=0; i<NN; i++)
 			multiplier[i] = UNITY_GAIN;
 
-		sumbufL=new float32_t[buffer_length];
+		sumbufL = new float32_t[buffer_length];
+		tmp = new float32_t[buffer_length];
+		assert(sumbufL);
+		assert(tmp);
 		arm_fill_f32(0.0f, sumbufL, len);
+		arm_fill_f32(0.0f, tmp, len);
 	}
 
 	~AudioMixer()
 	{
-		delete [] sumbufL;
+		if (sumbufL)
+			delete [] sumbufL;
+		if (tmp)
+			delete [] tmp;
 	}
 
-        void doAddMix(uint8_t channel, float32_t* in)
+    void doAddMix(uint8_t channel, float32_t* in)
 	{
-		float32_t tmp[buffer_length];
-
 		assert(in);
 
 		if(multiplier[channel]!=UNITY_GAIN)
@@ -46,7 +51,8 @@ public:
 
 	void gain(uint8_t channel, float32_t gain)
 	{
-		if (channel >= NN) return;
+		if (channel >= NN) 
+			return;
 
 		if (gain > MAX_GAIN)
 			gain = MAX_GAIN;
@@ -70,16 +76,16 @@ public:
 	void getMix(float32_t* buffer)
 	{
 		assert(buffer);
-		assert(sumbufL);
-		arm_copy_f32(sumbufL, buffer, buffer_length);
 
-		if(sumbufL)
-			arm_fill_f32(0.0f, sumbufL, buffer_length);
+		arm_copy_f32(sumbufL, buffer, buffer_length);
+	 
+		arm_fill_f32(0.0f, sumbufL, buffer_length);
 	}
 
 protected:
 	float32_t multiplier[NN];
 	float32_t* sumbufL;
+	float32_t* tmp;
 	uint16_t buffer_length;
 };
 
@@ -95,17 +101,22 @@ public:
 		}
 
 		sumbufR=new float32_t[buffer_length];
+		assert(sumbufR);
 		arm_fill_f32(0.0f, sumbufR, buffer_length);
 	}
 
 	~AudioStereoMixer()
 	{
-		delete [] sumbufR;
+		if (sumbufR)
+			delete [] sumbufR;
+		if (tmp)
+			delete [] tmp;
 	}
 
-        void pan(uint8_t channel, float32_t pan)
+    void pan(uint8_t channel, float32_t pan)
 	{
-		if (channel >= NN) return;
+		if (channel >= NN) 
+			return;
 
 		if (pan > MAX_PANORAMA)
 			pan = MAX_PANORAMA;
@@ -119,8 +130,6 @@ public:
 
 	void doAddMix(uint8_t channel, float32_t* in)
 	{
-		float32_t tmp[buffer_length];
-
 		assert(in);
 
 		// left
@@ -137,8 +146,6 @@ public:
 
 	void doAddMix(uint8_t channel, float32_t* inL, float32_t* inR)
 	{
-		float32_t tmp[buffer_length];
-
 		assert(inL);
 		assert(inR);
 
@@ -156,22 +163,19 @@ public:
 	{
 		assert(bufferR);
 		assert(bufferL);
-		assert(sumbufL);
-		assert(sumbufR);
 
 		arm_copy_f32 (sumbufL, bufferL, buffer_length);
 		arm_copy_f32 (sumbufR, bufferR, buffer_length);
 
-		if(sumbufL)
-			arm_fill_f32(0.0f, sumbufL, buffer_length);
-		if(sumbufR)
-			arm_fill_f32(0.0f, sumbufR, buffer_length);
+		arm_fill_f32(0.0f, sumbufL, buffer_length);
+		arm_fill_f32(0.0f, sumbufR, buffer_length);
 	}
 
 protected:
 	using AudioMixer<NN>::sumbufL;
 	using AudioMixer<NN>::multiplier;
 	using AudioMixer<NN>::buffer_length;
+	using AudioMixer<NN>::tmp;
 	float32_t panorama[NN][2];
 	float32_t* sumbufR;
 };

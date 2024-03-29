@@ -21,7 +21,7 @@ LOGMODULE ("compressor");
 Compressor::Compressor(const float32_t sample_rate_Hz) {
 	  //setDefaultValues(AUDIO_SAMPLE_RATE);   resetStates();
 	  setDefaultValues(sample_rate_Hz);
-          resetStates();
+        resetStates();
 }
 	
 void Compressor::setDefaultValues(const float32_t sample_rate_Hz) {
@@ -37,7 +37,8 @@ void Compressor::setDefaultValues(const float32_t sample_rate_Hz) {
 void Compressor::calcInstantaneousTargetGain(float32_t *audio_level_dB_block, float32_t *inst_targ_gain_dB_block, uint16_t len)
 {
       // how much are we above the compression threshold?
-      float32_t above_thresh_dB_block[len];
+      //float32_t above_thresh_dB_block[len];
+      float32_t* above_thresh_dB_block = new float32_t[len];
 
       //arm_copy_f32(zeroblock_f32,above_thresh_dB_block,len);
 
@@ -63,6 +64,7 @@ void Compressor::calcInstantaneousTargetGain(float32_t *audio_level_dB_block, fl
         if (inst_targ_gain_dB_block[i] > 0.0f) inst_targ_gain_dB_block[i] = 0.0f;
       }
 
+      delete above_thresh_dB_block;
       return;  //output is passed through inst_targ_gain_dB_block
 }
 
@@ -96,7 +98,8 @@ void Compressor::calcSmoothedGain_dB(float32_t *inst_targ_gain_dB_block, float32
 void Compressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_block, uint16_t len) { 
     	
       // calculate the instantaneous signal power (square the signal)
-      float32_t wav_pow_block[len];
+      //float32_t wav_pow_block[len];
+      float32_t* wav_pow_block = new float32_t[len];
 
       //arm_copy_f32(zeroblock_f32,wav_pow_block,len);
 
@@ -121,6 +124,7 @@ void Compressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_blo
       //scale the wav_pow_block by 10.0 to complete the conversion to dB
       arm_scale_f32(level_dB_block, 10.0f, level_dB_block, len); //use ARM DSP for speed!
 
+      delete wav_pow_block;
       return; //output is passed through level_dB_block
     }
 
@@ -129,13 +133,15 @@ void Compressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_blo
 void Compressor::calcGain(float32_t *audio_level_dB_block, float32_t *gain_block,uint16_t len)
 { 
       //first, calculate the instantaneous target gain based on the compression ratio
-      float32_t inst_targ_gain_dB_block[len];
+      //float32_t inst_targ_gain_dB_block[len];
+      float32_t* inst_targ_gain_dB_block = new float32_t[len];
       //arm_copy_f32(zeroblock_f32,inst_targ_gain_dB_block,len);
 
       calcInstantaneousTargetGain(audio_level_dB_block, inst_targ_gain_dB_block,len);
     
       //second, smooth in time (attack and release) by stepping through each sample
-      float32_t gain_dB_block[len];
+      //float32_t gain_dB_block[len];
+      float32_t* gain_dB_block = new float32_t[len];
       //arm_copy_f32(zeroblock_f32,gain_dB_block,len);
 
       calcSmoothedGain_dB(inst_targ_gain_dB_block,gain_dB_block, len);
@@ -144,11 +150,14 @@ void Compressor::calcGain(float32_t *audio_level_dB_block, float32_t *gain_block
       arm_scale_f32(gain_dB_block, 1.0f/20.0f, gain_dB_block, len);  //divide by 20 
       for (uint16_t i = 0; i < len; i++) gain_block[i] = pow10f(gain_dB_block[i]); //do the 10^(x)
       
+      delete inst_targ_gain_dB_block;
+      delete gain_dB_block;
       return;  //output is passed through gain_block
 }
       
 //here's the method that does all the work
-void Compressor::doCompression(float32_t *audio_block, uint16_t len) {
+void Compressor::doCompression(float32_t *audio_block, uint16_t len)
+{
       //Serial.println("AudioEffectGain_F32: updating.");  //for debugging.
       if (!audio_block) {
         LOGERR("No audio_block available for Compressor!");
@@ -164,14 +173,16 @@ void Compressor::doCompression(float32_t *audio_block, uint16_t len) {
         arm_scale_f32(audio_block, pre_gain, audio_block, len); //use ARM DSP for speed!
 
       //calculate the level of the audio (ie, calculate a smoothed version of the signal power)
-      float32_t audio_level_dB_block[len];
+      //float32_t audio_level_dB_block[len];
+      float32_t* audio_level_dB_block = new float32_t[len];
 
       //arm_copy_f32(zeroblock_f32,audio_level_dB_block,len);
 
       calcAudioLevel_dB(audio_block, audio_level_dB_block, len); //returns through audio_level_dB_block
 
       //compute the desired gain based on the observed audio level
-      float32_t gain_block[len];
+      //float32_t gain_block[len];
+      float32_t* gain_block = new float32_t[len];
 
       //arm_copy_f32(zeroblock_f32,gain_block,len);
 
@@ -179,6 +190,9 @@ void Compressor::doCompression(float32_t *audio_block, uint16_t len) {
 
       //apply the desired gain...store the processed audio back into audio_block
       arm_mult_f32(audio_block, gain_block, audio_block, len);
+
+      delete audio_level_dB_block;
+      delete gain_block;
 }
 
 //methods to set parameters of this module

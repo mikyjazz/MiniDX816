@@ -56,6 +56,7 @@ class CMiniDexed
 public:
 	CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 		    CGPIOManager *pGPIOManager, CI2CMaster *pI2CMaster, FATFS *pFileSystem);
+	~CMiniDexed();
 
 	bool Initialize (void);
 
@@ -87,6 +88,7 @@ public:
 	void keydown (int16_t pitch, uint8_t velocity, unsigned nTG);
 
 	void setSustain (bool sustain, unsigned nTG);
+	void panic ();
 	void panic (uint8_t value, unsigned nTG);
 	void notesOff (uint8_t value, unsigned nTG);
 	void setModWheel (uint8_t value, unsigned nTG);
@@ -240,7 +242,7 @@ public:
 		MidiMode1All = 3
 	};
 
-	void SetGlobalMidiMode(TGMidiMode mode);
+	void SetGlobalMidiMode(TGMidiMode mode, bool force = false);
 	TGMidiMode GetGlobalMidiMode(void);
 	std::string GetGlobalMidiModeString(void);
 
@@ -347,6 +349,18 @@ private:
 	bool m_bLoadInitialSettings;
 	bool m_bSaveAsDeault;
 	TGMidiMode m_pMidiMode;
+
+#ifdef ARM_ALLOW_MULTI_CORE
+	float32_t* m_SampleBuffer[2];
+	int16_t*   m_tmp_int;
+	float32_t* m_tmp_float;
+	float32_t* m_ReverbBuffer[2];
+	float32_t* m_ReverbSendBuffer[2];
+#else
+	float32_t* m_SampleBuffer;
+	int16_t*   m_tmp_int;
+#endif
+
 };
 
 #endif

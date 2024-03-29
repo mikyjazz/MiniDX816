@@ -62,6 +62,19 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 {
 	assert (m_pConfig);
 
+#ifdef ARM_ALLOW_MULTI_CORE
+	m_tmp_float = NULL;
+	m_ReverbBuffer[0] = NULL;
+	m_ReverbBuffer[1] = NULL;
+	m_ReverbSendBuffer[0] = NULL;
+	m_ReverbSendBuffer[1] = NULL;
+	m_SampleBuffer[0] = NULL;
+	m_SampleBuffer[1] = NULL;
+#else	
+	m_SampleBuffer = NULL;
+#endif
+	m_tmp_int = NULL;
+
 	for (unsigned i = 0; i < CConfig::ToneGenerators; i++)
 	{
 		m_nVoiceBankID[i] = 0;
@@ -177,6 +190,33 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	SetParameter (ParameterPerformanceBank, 0);
 };
 
+CMiniDexed::~CMiniDexed()
+{
+#ifdef ARM_ALLOW_MULTI_CORE
+	if (m_SampleBuffer[0])
+		delete m_SampleBuffer[0];
+	if (m_SampleBuffer[1])
+		delete m_SampleBuffer[1];
+	if (m_tmp_int)
+		delete m_tmp_int;
+	if (m_tmp_float)
+		delete m_tmp_float;
+	if (m_ReverbBuffer[0])
+		delete m_ReverbBuffer[0];
+	if (m_ReverbBuffer[1])
+		delete m_ReverbBuffer[1];
+	if (m_ReverbSendBuffer[0])
+		delete m_ReverbSendBuffer[0];
+	if (m_ReverbSendBuffer[1])
+		delete m_ReverbSendBuffer[1];
+#else	
+	if (m_SampleBuffer)
+		delete m_SampleBuffer;
+	if (m_tmp_int)
+		delete m_tmp_int;		
+#endif	
+}
+
 bool CMiniDexed::Initialize (void)
 {
 	assert (m_pConfig);
@@ -267,6 +307,20 @@ bool CMiniDexed::Initialize (void)
 #endif
 
 	m_nQueueSizeFrames = m_pSoundDevice->GetQueueSizeFrames ();
+
+#ifndef ARM_ALLOW_MULTI_CORE
+	m_SampleBuffer = new float32_t[m_nQueueSizeFrames];
+	m_tmp_int = new int16_t[m_nQueueSizeFrames];
+#else
+	m_SampleBuffer[0] = new float32_t[m_nQueueSizeFrames];
+	m_SampleBuffer[1] = new float32_t[m_nQueueSizeFrames];
+	m_tmp_int = new int16_t[m_nQueueSizeFrames*2];
+	m_tmp_float = new float32_t[m_nQueueSizeFrames*2];
+	m_ReverbBuffer[0] = new float32_t[m_nQueueSizeFrames];
+	m_ReverbBuffer[1] = new float32_t[m_nQueueSizeFrames];
+	m_ReverbSendBuffer[0] = new float32_t[m_nQueueSizeFrames];
+	m_ReverbSendBuffer[1] = new float32_t[m_nQueueSizeFrames];
+#endif
 
 	m_pSoundDevice->Start ();
 
@@ -739,6 +793,14 @@ void CMiniDexed::setSustain(bool sustain, unsigned nTG)
 	m_pTG[nTG]->setSustain (sustain);
 }
 
+void CMiniDexed::panic()
+{
+	for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
+	{
+		m_pTG[nTG]->panic ();
+	}
+}
+
 void CMiniDexed::panic(uint8_t value, unsigned nTG)
 {
 	assert (nTG < CConfig::ToneGenerators);
@@ -1067,6 +1129,7 @@ void CMiniDexed::ProcessSound (void)
 	assert (m_pSoundDevice);
 
 	unsigned nFrames = m_nQueueSizeFrames - m_pSoundDevice->GetQueueFramesAvail ();
+
 	if (nFrames >= m_nQueueSizeFrames/2)
 	{
 		if (m_bProfileEnabled)
@@ -1074,14 +1137,12 @@ void CMiniDexed::ProcessSound (void)
 			m_GetChunkTimer.Start ();
 		}
 
-		float32_t SampleBuffer[nFrames];
-		m_pTG[0]->getSamples (SampleBuffer, nFrames);
+		m_pTG[0]->getSamples (m_SampleBuffer, nFrames);
 
 		// Convert single float array (mono) to int16 array
-		int16_t tmp_int[nFrames];
-		arm_float_to_q15(SampleBuffer,tmp_int,nFrames);
+		arm_float_to_q15(m_SampleBuffer, m_tmp_int, nFrames);
 
-		if (m_pSoundDevice->Write (tmp_int, sizeof(tmp_int)) != (int) sizeof(tmp_int))
+		if (m_pSoundDevice->Write (m_tmp_int, (int)(sizeof(int16_t) * nFrames)) != int (sizeof(int16_t) * nFrames))
 		{
 			LOGERR ("Sound data dropped");
 		}
@@ -1142,10 +1203,10 @@ void CMiniDexed::ProcessSound (void)
 		uint8_t indexL=0, indexR=1;
 		
 		// BEGIN TG mixing
-		float32_t tmp_float[nFrames*2];
-		int16_t tmp_int[nFrames*2];
+
 		float32_t nMasterVolume = GetMasterVolumeF();
-		if(nMasterVolume > 0.0)
+
+		if(nMasterVolume > MIN_GAIN)
 		{
 			for (uint8_t i = 0; i < CConfig::ToneGenerators; i++)
 			{
@@ -1154,35 +1215,29 @@ void CMiniDexed::ProcessSound (void)
 			}
 			// END TG mixing
 	
-			// BEGIN create SampleBuffer for holding audio data
-			float32_t SampleBuffer[2][nFrames];
-			// END create SampleBuffer for holding audio data
-
 			// get the mix of all TGs
-			tg_mixer->getMix(SampleBuffer[indexL], SampleBuffer[indexR]);
+			tg_mixer->getMix(m_SampleBuffer[indexL], m_SampleBuffer[indexR]);
 
 			// BEGIN adding reverb
 			if (m_nParameter[ParameterReverbEnable])
 			{
-				float32_t ReverbBuffer[2][nFrames];
-				float32_t ReverbSendBuffer[2][nFrames];
-
-				arm_fill_f32(0.0f, ReverbBuffer[indexL], nFrames);
-				arm_fill_f32(0.0f, ReverbBuffer[indexR], nFrames);
-				arm_fill_f32(0.0f, ReverbSendBuffer[indexR], nFrames);
-				arm_fill_f32(0.0f, ReverbSendBuffer[indexL], nFrames);
+				arm_fill_f32(0.0f, m_ReverbBuffer[indexL], nFrames);
+				arm_fill_f32(0.0f, m_ReverbBuffer[indexR], nFrames);
+				arm_fill_f32(0.0f, m_ReverbSendBuffer[indexR], nFrames);
+				arm_fill_f32(0.0f, m_ReverbSendBuffer[indexL], nFrames);
 	
 				m_ReverbSpinLock.Acquire ();
 	
-       		    reverb_send_mixer->getMix(ReverbSendBuffer[indexL], ReverbSendBuffer[indexR]);
-				reverb->doReverb(ReverbSendBuffer[indexL],ReverbSendBuffer[indexR],ReverbBuffer[indexL], ReverbBuffer[indexR],nFrames);
+       		    reverb_send_mixer->getMix(m_ReverbSendBuffer[indexL], m_ReverbSendBuffer[indexR]);
+				reverb->doReverb(m_ReverbSendBuffer[indexL],m_ReverbSendBuffer[indexR],m_ReverbBuffer[indexL], m_ReverbBuffer[indexR],nFrames);
 	
 				// scale down and add left reverb buffer by reverb level 
-				arm_scale_f32(ReverbBuffer[indexL], reverb->get_level(), ReverbBuffer[indexL], nFrames);
-				arm_add_f32(SampleBuffer[indexL], ReverbBuffer[indexL], SampleBuffer[indexL], nFrames);
+				arm_scale_f32(m_ReverbBuffer[indexL], reverb->get_level(), m_ReverbBuffer[indexL], nFrames);
+				arm_add_f32(m_SampleBuffer[indexL], m_ReverbBuffer[indexL], m_SampleBuffer[indexL], nFrames);
+
 				// scale down and add right reverb buffer by reverb level 
-				arm_scale_f32(ReverbBuffer[indexR], reverb->get_level(), ReverbBuffer[indexR], nFrames);
-				arm_add_f32(SampleBuffer[indexR], ReverbBuffer[indexR], SampleBuffer[indexR], nFrames);
+				arm_scale_f32(m_ReverbBuffer[indexR], reverb->get_level(), m_ReverbBuffer[indexR], nFrames);
+				arm_add_f32(m_SampleBuffer[indexR], m_ReverbBuffer[indexR], m_SampleBuffer[indexR], nFrames);
 	
 				m_ReverbSpinLock.Release ();
 			}
@@ -1196,25 +1251,30 @@ void CMiniDexed::ProcessSound (void)
 			}
 
 			// Convert dual float array (left, right) to single int16 array (left/right)
-			for(uint16_t i=0; i<nFrames;i++)
+			if(nMasterVolume < MAX_GAIN)
 			{
-				if(nMasterVolume <1.0)
+				for(uint16_t i=0; i<nFrames;i++)
 				{
-					tmp_float[i*2]=SampleBuffer[indexL][i] * nMasterVolume;
-					tmp_float[(i*2)+1]=SampleBuffer[indexR][i] * nMasterVolume;
-				}
-				else
-				{
-					tmp_float[i*2]=SampleBuffer[indexL][i];
-					tmp_float[(i*2)+1]=SampleBuffer[indexR][i];
+					m_tmp_float[i*2]=m_SampleBuffer[indexL][i] * nMasterVolume;
+					m_tmp_float[(i*2)+1]=m_SampleBuffer[indexR][i] * nMasterVolume;
 				}
 			}
-			arm_float_to_q15(tmp_float,tmp_int,nFrames*2);
+			else	// nMasterVolume = 1.0
+			{
+				for(uint16_t i=0; i<nFrames;i++)
+				{					
+					m_tmp_float[i*2]=m_SampleBuffer[indexL][i];
+					m_tmp_float[(i*2)+1]=m_SampleBuffer[indexR][i];
+				}
+			}
+			arm_float_to_q15(m_tmp_float,m_tmp_int,nFrames*2);
 		}
 		else
-			arm_fill_q15(0, tmp_int, nFrames * 2);
+		{
+			arm_fill_q15(0, m_tmp_int, nFrames * 2);
+		}
 
-		if (m_pSoundDevice->Write (tmp_int, sizeof(tmp_int)) != (int) sizeof(tmp_int))
+		if (m_pSoundDevice->Write (m_tmp_int, (int)(sizeof(int16_t) * nFrames * 2)) != (int)(sizeof(int16_t) * nFrames * 2))
 		{
 			LOGERR ("Sound data dropped");
 		}
@@ -1569,7 +1629,7 @@ unsigned CMiniDexed::GetMasterVolume ()
 
 float32_t CMiniDexed::GetMasterVolumeF ()
 {
-	float32_t vol = m_pConfig->GetSessionMasterVolume()/ (float32_t)MAX_MASTER_VOLUME;
+	float32_t vol = (float32_t)m_pConfig->GetSessionMasterVolume()/ (float32_t)MAX_MASTER_VOLUME;
 	if (vol < 0.0)
 		vol = 0.0;
 	else if (vol > 1.0)
@@ -1655,11 +1715,13 @@ bool CMiniDexed::DoLoadPerformance (void)
 			{
 				m_pConfig->SetSessionPerformance(nID);
 			}
+			SetGlobalMidiMode(GetGlobalMidiMode(), true);
 			result = true;
 		}
 		else
 		{
 			SetMIDIChannel (CMIDIDevice::OmniMode, 0);
+			SetGlobalMidiMode(TGMidiMode::MidiModeOmni);
 		}
 		m_bLoadPerformanceBusy = false;
 	}
@@ -1734,10 +1796,11 @@ std::string CMiniDexed::GetGlobalMidiModeString(void)
 	}
 }
 
-void CMiniDexed::SetGlobalMidiMode(TGMidiMode mode)
+void CMiniDexed::SetGlobalMidiMode(TGMidiMode mode, bool force)
 {
-	if (mode != m_pMidiMode)
+	if (mode != m_pMidiMode || force == true)
 	{
+		panic();
 		unsigned midiCh0 = m_nMIDIChannelPf[0];
 		for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
 		{
@@ -1781,8 +1844,7 @@ void CMiniDexed::SetGlobalMidiMode(TGMidiMode mode)
 void CMiniDexed::LoadPerformanceParameters(void)
 {
 	for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
-	{
-		
+	{		
 		BankSelect (m_PerformanceConfig.GetBankNumber (nTG), nTG);
 		ProgramChange (m_PerformanceConfig.GetVoiceNumber (nTG), nTG);
 		SetMIDIChannel (m_PerformanceConfig.GetMIDIChannel (nTG), nTG);
