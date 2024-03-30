@@ -167,6 +167,8 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	}
 #endif
 
+	compressor = new Compressor(pConfig->GetSampleRate());
+
 	// BEGIN setup tg_mixer
 	tg_mixer = new AudioStereoMixer<CConfig::ToneGenerators>(pConfig->GetChunkSize()/2);
 	// END setup tgmixer
@@ -192,6 +194,18 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 
 CMiniDexed::~CMiniDexed()
 {
+	for (unsigned i = 0; i < CConfig::ToneGenerators; i++)
+	{
+		if (m_pTG[i])
+			delete m_pTG[i];
+	}
+	for (unsigned i = 0; i < CConfig::MaxUSBMIDIDevices; i++)
+	{
+		if (m_pMIDIKeyboard[i])
+			delete m_pMIDIKeyboard[i];
+	}	
+	if (m_pSoundDevice)
+		delete m_pSoundDevice;
 #ifdef ARM_ALLOW_MULTI_CORE
 	if (m_SampleBuffer[0])
 		delete m_SampleBuffer[0];
@@ -215,6 +229,14 @@ CMiniDexed::~CMiniDexed()
 	if (m_tmp_int)
 		delete m_tmp_int;		
 #endif	
+	if (compressor)
+		delete compressor;
+	if (tg_mixer)
+		delete tg_mixer;
+	if (reverb_send_mixer)
+		delete reverb_send_mixer;
+	if (reverb)	
+		delete reverb;
 }
 
 bool CMiniDexed::Initialize (void)
@@ -872,11 +894,15 @@ void CMiniDexed::SetParameter (TParameter Parameter, int nValue)
 	switch (Parameter)
 	{
 		case ParameterCompressorEnable:
-			for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
+			if (m_pConfig->GetEnableTGCompressor())
 			{
-				assert (m_pTG[nTG]);
-				m_pTG[nTG]->setCompressor (!!nValue);
+				for (unsigned nTG = 0; nTG < CConfig::ToneGenerators; nTG++)
+				{
+					assert (m_pTG[nTG]);
+					m_pTG[nTG]->setCompressor (!!nValue);
+				}
 			}
+			m_bCompressorEnable = !!nValue;
 			break;
 
 		case ParameterReverbEnable:
@@ -1139,6 +1165,9 @@ void CMiniDexed::ProcessSound (void)
 
 		m_pTG[0]->getSamples (m_SampleBuffer, nFrames);
 
+  		if (m_bCompressorEnable == true)
+    		compressor->doCompression(m_SampleBuffer, nFrames);
+
 		// Convert single float array (mono) to int16 array
 		arm_float_to_q15(m_SampleBuffer, m_tmp_int, nFrames);
 
@@ -1248,6 +1277,12 @@ void CMiniDexed::ProcessSound (void)
 			{
 				indexL=1;
 				indexR=0;
+			}
+
+	  		if (m_bCompressorEnable == true) 
+			{
+    			compressor->doCompression(m_SampleBuffer[indexL], nFrames);
+    			compressor->doCompression(m_SampleBuffer[indexR], nFrames);
 			}
 
 			// Convert dual float array (left, right) to single int16 array (left/right)

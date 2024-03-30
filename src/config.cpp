@@ -77,7 +77,7 @@ bool CConfig::Load (void)
 	} else {	// 1
   		m_EngineType = MSFA;
 	}
-
+	m_bEnableTGCompressor = m_Properties.GetNumber ("EnableTGCompressor", 1) != 0;	
 	m_nMIDIBaudRate = m_Properties.GetNumber ("MIDIBaudRate", 31250);
 
 	const char *pMIDIThru = m_Properties.GetString ("MIDIThru");
@@ -225,6 +225,11 @@ bool CConfig::GetChannelsSwapped (void) const
 unsigned CConfig::GetEngineType (void) const
 {
 	return m_EngineType;
+}
+
+bool CConfig::GetEnableTGCompressor (void) const
+{
+	return m_bEnableTGCompressor;
 }
 
 unsigned CConfig::GetMIDIBaudRate (void) const

@@ -332,6 +332,7 @@ private:
 	AudioEffectPlateReverb* reverb;
 	AudioStereoMixer<CConfig::ToneGenerators>* tg_mixer;
 	AudioStereoMixer<CConfig::ToneGenerators>* reverb_send_mixer;
+	Compressor* compressor;
 
 	CSpinLock m_ReverbSpinLock;
 
@@ -348,6 +349,7 @@ private:
 	bool m_bLoadPerformanceBankBusy;
 	bool m_bLoadInitialSettings;
 	bool m_bSaveAsDeault;
+	bool m_bCompressorEnable;
 	TGMidiMode m_pMidiMode;
 
 #ifdef ARM_ALLOW_MULTI_CORE

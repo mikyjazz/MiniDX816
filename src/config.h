@@ -75,6 +75,7 @@ public:
 	unsigned GetDACI2CAddress (void) const;		// 0 for auto probing
 	bool GetChannelsSwapped (void) const;
 	unsigned GetEngineType (void) const;
+	bool GetEnableTGCompressor (void) const;
 
 	// MIDI
 	unsigned GetMIDIBaudRate (void) const;
@@ -181,9 +182,11 @@ public:
 
 	// minidexedsession.ini
 	unsigned GetSessionPerformance (void) const;
-	unsigned GetSessionPerformanceBank (void) const;
 	void SetSessionPerformance (unsigned nValue);
+
+	unsigned GetSessionPerformanceBank (void) const;
 	void SetSessionPerformanceBank (unsigned nValue);
+	
 	unsigned GetSessionMasterVolume (void) const;
 	void SetSessionMasterVolume (unsigned nValue);
 	
@@ -201,6 +204,7 @@ private:
 	unsigned m_nDACI2CAddress;
 	bool m_bChannelsSwapped;
 	unsigned m_EngineType;
+	bool m_bEnableTGCompressor;
 
 	unsigned m_nMIDIBaudRate;
 	std::string m_MIDIThruIn;
