@@ -16,15 +16,15 @@
 #include <cstdlib>
 #include "effect_compressor.h"
 
-LOGMODULE ("compressor");
+LOGMODULE ("effect_compressor");
 
-Compressor::Compressor(const float32_t sample_rate_Hz) {
+AudioCompressor::AudioCompressor(const float32_t sample_rate_Hz) {
 	  //setDefaultValues(AUDIO_SAMPLE_RATE);   resetStates();
 	  setDefaultValues(sample_rate_Hz);
         resetStates();
 }
 	
-void Compressor::setDefaultValues(const float32_t sample_rate_Hz) {
+void AudioCompressor::setDefaultValues(const float32_t sample_rate_Hz) {
       setThresh_dBFS(-20.0f);     //set the default value for the threshold for compression
       setCompressionRatio(5.0f);  //set the default copression ratio
       setAttack_sec(0.005f, sample_rate_Hz);  //default to this value
@@ -34,7 +34,7 @@ void Compressor::setDefaultValues(const float32_t sample_rate_Hz) {
 
 //Compute the instantaneous desired gain, including the compression ratio and
 //threshold for where the comrpession kicks in
-void Compressor::calcInstantaneousTargetGain(float32_t *audio_level_dB_block, float32_t *inst_targ_gain_dB_block, uint16_t len)
+void AudioCompressor::calcInstantaneousTargetGain(float32_t *audio_level_dB_block, float32_t *inst_targ_gain_dB_block, uint16_t len)
 {
       // how much are we above the compression threshold?
       float32_t* above_thresh_dB_block = new float32_t[len];
@@ -70,7 +70,7 @@ void Compressor::calcInstantaneousTargetGain(float32_t *audio_level_dB_block, fl
 
 //this method applies the "attack" and "release" constants to smooth the
 //target gain level through time.
-void Compressor::calcSmoothedGain_dB(float32_t *inst_targ_gain_dB_block, float32_t *gain_dB_block, uint16_t len)
+void AudioCompressor::calcSmoothedGain_dB(float32_t *inst_targ_gain_dB_block, float32_t *gain_dB_block, uint16_t len)
 {
       float32_t gain_dB;
       float32_t one_minus_attack_const = 1.0f - attack_const;
@@ -95,7 +95,7 @@ void Compressor::calcSmoothedGain_dB(float32_t *inst_targ_gain_dB_block, float32
 // Here's the method that estimates the level of the audio (in dB)
 // It squares the signal and low-pass filters to get a time-averaged
 // signal power.  It then 
-void Compressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_block, uint16_t len) 
+void AudioCompressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_block, uint16_t len) 
 { 
     	
       // calculate the instantaneous signal power (square the signal)
@@ -132,7 +132,7 @@ void Compressor::calcAudioLevel_dB(float32_t *wav_block, float32_t *level_dB_blo
 
     //This method computes the desired gain from the compressor, given an estimate
     //of the signal level (in dB)
-void Compressor::calcGain(float32_t *audio_level_dB_block, float32_t *gain_block,uint16_t len)
+void AudioCompressor::calcGain(float32_t *audio_level_dB_block, float32_t *gain_block,uint16_t len)
 { 
       //first, calculate the instantaneous target gain based on the compression ratio
       float32_t* inst_targ_gain_dB_block = new float32_t[len];
@@ -159,7 +159,7 @@ void Compressor::calcGain(float32_t *audio_level_dB_block, float32_t *gain_block
 }
       
 //here's the method that does all the work
-void Compressor::doCompression(float32_t *audio_block, uint16_t len)
+void AudioCompressor::doCompression(float32_t *audio_block, uint16_t len)
 {
       //Serial.println("AudioEffectGain_F32: updating.");  //for debugging.
       if (!audio_block) 
@@ -200,7 +200,7 @@ void Compressor::doCompression(float32_t *audio_block, uint16_t len)
 }
 
 //methods to set parameters of this module
-void Compressor::resetStates(void)
+void AudioCompressor::resetStates(void)
 {
       prev_level_lp_pow = 1.0f;
       prev_gain_dB = 0.0f;
@@ -209,23 +209,23 @@ void Compressor::resetStates(void)
       arm_biquad_cascade_df1_init_f32(&hp_filt_struct, hp_nstages, hp_coeff, hp_state);
 }
 
-void Compressor::setPreGain(float32_t g)
+void AudioCompressor::setPreGain(float32_t g)
 {
     pre_gain = g;
 }
 
-void Compressor::setPreGain_dB(float32_t gain_dB)
+void AudioCompressor::setPreGain_dB(float32_t gain_dB)
 {
     setPreGain(pow(10.0, gain_dB / 20.0));
 }
 
-void Compressor::setCompressionRatio(float32_t cr)
+void AudioCompressor::setCompressionRatio(float32_t cr)
 {
       comp_ratio = max(0.001f, cr); //limit to positive values
       updateThresholdAndCompRatioConstants();
 }
 
-void Compressor::setAttack_sec(float32_t a, float32_t fs_Hz)
+void AudioCompressor::setAttack_sec(float32_t a, float32_t fs_Hz)
 {
       attack_sec = a;
       attack_const = expf(-1.0f / (attack_sec * fs_Hz)); //expf() is much faster than exp()
@@ -234,7 +234,7 @@ void Compressor::setAttack_sec(float32_t a, float32_t fs_Hz)
       setLevelTimeConst_sec(min(attack_sec,release_sec) / 5.0, fs_Hz);  //make the level time-constant one-fifth the gain time constants
 } 
 
-void Compressor::setRelease_sec(float32_t r, float32_t fs_Hz)
+void AudioCompressor::setRelease_sec(float32_t r, float32_t fs_Hz)
 {
       release_sec = r;
       release_const = expf(-1.0f / (release_sec * fs_Hz)); //expf() is much faster than exp()
@@ -243,25 +243,25 @@ void Compressor::setRelease_sec(float32_t r, float32_t fs_Hz)
       setLevelTimeConst_sec(min(attack_sec,release_sec) / 5.0, fs_Hz);  //make the level time-constant one-fifth the gain time constants
 }
 
-void Compressor::setLevelTimeConst_sec(float32_t t_sec, float32_t fs_Hz)
+void AudioCompressor::setLevelTimeConst_sec(float32_t t_sec, float32_t fs_Hz)
 {
       const float32_t min_t_sec = 0.002f;  //this is the minimum allowed value
       level_lp_sec = max(min_t_sec,t_sec);
       level_lp_const = expf(-1.0f / (level_lp_sec * fs_Hz)); //expf() is much faster than exp()
 }
 
-void Compressor::setThresh_dBFS(float32_t val)
+void AudioCompressor::setThresh_dBFS(float32_t val)
 { 
       thresh_dBFS = val;
       setThreshPow(pow(10.0, thresh_dBFS / 10.0));
 }
 
-void Compressor::enableHPFilter(boolean flag)
+void AudioCompressor::enableHPFilter(boolean flag)
 {
       use_HP_prefilter = flag;
 }
 
-void Compressor::setHPFilterCoeff_N2IIR_Matlab(float32_t b[], float32_t a[])
+void AudioCompressor::setHPFilterCoeff_N2IIR_Matlab(float32_t b[], float32_t a[])
 {
       //https://www.keil.com/pack/doc/CMSIS/DSP/html/group__BiquadCascadeDF1.html#ga8e73b69a788e681a61bccc8959d823c5
       //Use matlab to compute the coeff for HP at 20Hz: [b,a]=butter(2,20/(44100/2),'high'); %assumes fs_Hz = 44100
@@ -269,7 +269,7 @@ void Compressor::setHPFilterCoeff_N2IIR_Matlab(float32_t b[], float32_t a[])
       hp_coeff[3] = -a[1];  hp_coeff[4] = -a[2];  //the DSP needs the "a" terms to have opposite sign vs Matlab    	
 }
     
-void Compressor::setHPFilterCoeff(void)
+void AudioCompressor::setHPFilterCoeff(void)
 {
       //https://www.keil.com/pack/doc/CMSIS/DSP/html/group__BiquadCascadeDF1.html#ga8e73b69a788e681a61bccc8959d823c5
       //Use matlab to compute the coeff for HP at 20Hz: [b,a]=butter(2,20/(44100/2),'high'); %assumes fs_Hz = 44100
@@ -280,32 +280,25 @@ void Compressor::setHPFilterCoeff(void)
       //hp_coeff[3] = -a[1];  hp_coeff[4] = -a[2];  //the DSP needs the "a" terms to have opposite sign vs Matlab
 }
 
-void Compressor::updateThresholdAndCompRatioConstants(void)
+void AudioCompressor::updateThresholdAndCompRatioConstants(void)
 {
       comp_ratio_const = 1.0f-(1.0f / comp_ratio);
       thresh_pow_FS_wCR = powf(thresh_pow_FS, comp_ratio_const);    
 }
 
-void Compressor::setThreshPow(float32_t t_pow)
+void AudioCompressor::setThreshPow(float32_t t_pow)
 { 
       thresh_pow_FS = t_pow;
       updateThresholdAndCompRatioConstants();
 }
     
 // Accelerate the powf(10.0,x) function
-static float32_t pow10f(float32_t x)
+float32_t AudioCompressor::pow10f(float32_t x)
 {
       //return powf(10.0f,x)   //standard, but slower
       return expf(2.302585092994f*x);  //faster:  exp(log(10.0f)*x)
 }
 
-// Accelerate the log10f(x)  function?
-static float32_t log10f_approx(float32_t x)
-{
-      //return log10f(x);   //standard, but slower
-      return log2f_approx(x)*0.3010299956639812f; //faster:  log2(x)/log2(10)
-}
-    
 /* ----------------------------------------------------------------------
 ** Fast approximation to the log2() function.  It uses a two step
 ** process.  First, it decomposes the floating-point number into
@@ -316,7 +309,7 @@ static float32_t log10f_approx(float32_t x)
 ** ------------------------------------------------------------------- */
 //https://community.arm.com/tools/f/discussions/4292/cmsis-dsp-new-functionality-proposal/22621#22621
 //float32_t log2f_approx_coeff[4] = {1.23149591368684f, -4.11852516267426f, 6.02197014179219f, -3.13396450166353f};
-static float32_t log2f_approx(float32_t X)
+float32_t AudioCompressor::log2f_approx(float32_t X)
 {
       //float32_t *C = &log2f_approx_coeff[0];
       float32_t Y;
@@ -341,3 +334,11 @@ static float32_t log2f_approx(float32_t X)
     
       return(Y);
 }
+
+// Accelerate the log10f(x)  function?
+float32_t AudioCompressor::log10f_approx(float32_t x)
+{
+      //return log10f(x);   //standard, but slower
+      return log2f_approx(x)*0.3010299956639812f; //faster:  log2(x)/log2(10)
+}
+    

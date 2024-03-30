@@ -12,17 +12,17 @@
    MIT License.  use at your own risk.
 */
 
-#ifndef _COMPRESSOR_H
-#define _COMPRESSOR_H
+#ifndef _EFFECT_COMPRESSOR_H
+#define _EFFECT_COMPRESSOR_H
 
 #include <arm_math.h> //ARM DSP extensions.  https://www.keil.com/pack/doc/CMSIS/DSP/html/index.html
 #include "synth.h"
 
-class Compressor
+class AudioCompressor
 {
   public:
     //constructor
-    Compressor(const float32_t sample_rate_Hz);
+    AudioCompressor(const float32_t sample_rate_Hz);
 
     void doCompression(float32_t *audio_block, uint16_t len);
     void setDefaultValues(const float32_t sample_rate_Hz);
@@ -74,11 +74,15 @@ class Compressor
     float32_t comp_ratio = 1.0;  //compression ratio
     float32_t pre_gain = -1.0;  //gain to apply before the compression.  negative value disables
     boolean use_HP_prefilter;
+
+  private:
+    // Accelerate the powf(10.0,x) function
+    static float32_t pow10f(float32_t x);
+    // Accelerate the log10f(x)  function?
+    static float32_t log10f_approx(float32_t x);
+    static float32_t log2f_approx(float32_t X);  
+
 };
 
-// Accelerate the powf(10.0,x) function
-static float32_t pow10f(float32_t x);
-// Accelerate the log10f(x)  function?
-static float32_t log10f_approx(float32_t x);
-static float32_t log2f_approx(float32_t X);
+
 #endif

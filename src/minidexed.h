@@ -332,7 +332,7 @@ private:
 	AudioEffectPlateReverb* reverb;
 	AudioStereoMixer<CConfig::ToneGenerators>* tg_mixer;
 	AudioStereoMixer<CConfig::ToneGenerators>* reverb_send_mixer;
-	Compressor* compressor;
+	AudioCompressor* compressor;
 
 	CSpinLock m_ReverbSpinLock;
 

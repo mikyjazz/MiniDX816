@@ -167,7 +167,9 @@ CMiniDexed::CMiniDexed (CConfig *pConfig, CInterruptSystem *pInterrupt,
 	}
 #endif
 
-	compressor = new Compressor(pConfig->GetSampleRate());
+	// BEGIN setup main compressor
+	compressor = new AudioCompressor(pConfig->GetSampleRate());
+	// END setup main compressor
 
 	// BEGIN setup tg_mixer
 	tg_mixer = new AudioStereoMixer<CConfig::ToneGenerators>(pConfig->GetChunkSize()/2);

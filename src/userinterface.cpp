@@ -62,7 +62,7 @@ bool CUserInterface::Initialize (void)
 			m_pSSD1306 = new CSSD1306Device (m_pConfig->GetSSD1306LCDWidth (), m_pConfig->GetSSD1306LCDHeight (),
 											 m_pI2CMaster, ssd1306addr,
 											 m_pConfig->GetSSD1306LCDRotate (), m_pConfig->GetSSD1306LCDMirror ());
-			LOGDBG ("LCD: SSD1306");
+			LOGDBG ("LCD: SSD1306 I2C");
 			if (!m_pSSD1306->Initialize ())
 			{
 				return false;
@@ -135,6 +135,7 @@ bool CUserInterface::Initialize (void)
 									m_pConfig->GetDoubleClickTimeout (),
 									m_pConfig->GetLongPressTimeout (),
 									
+									// MIDI BUTTONS
 									m_pConfig->GetMIDIButtonNotes (),
 									m_pConfig->GetMIDIButtonPrev (),
 									m_pConfig->GetMIDIButtonNext (),
@@ -201,6 +202,7 @@ void CUserInterface::ParameterChanged (void)
 	m_Menu.EventHandler (CUIMenu::MenuEventUpdate);
 }
 
+// this only works for 2 rows display
 void CUserInterface::DisplayWrite (const char *pMenu, const char *pParam, const char *pValue,
 				   bool bArrowDown, bool bArrowUp)
 {
@@ -210,7 +212,7 @@ void CUserInterface::DisplayWrite (const char *pMenu, const char *pParam, const 
 
 	CString Msg ("\x1B[H\E[?25l");		// cursor home and off
 
-	// first line
+	// first row
 	Msg.Append (pParam);
 
 	size_t nLen = strlen (pParam) + strlen (pMenu);
@@ -224,7 +226,7 @@ void CUserInterface::DisplayWrite (const char *pMenu, const char *pParam, const 
 
 	Msg.Append (pMenu);
 
-	// second line
+	// second row
 	CString Value (" ");
 	if (bArrowDown)
 	{
